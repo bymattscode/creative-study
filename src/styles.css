@@ -52,59 +52,70 @@
   --color-amber-glow: var(--amber-glow);
   --color-cyan-data: var(--cyan-data);
   --color-violet-soft: var(--violet-soft);
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Aloevera Display", ui-serif, Georgia, serif;
+  --font-sans: "Nexa", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 }
 
 :root {
-  /* Sinapse — dark editorial. Warm charcoal, lime accent, amber warn, cyan data. */
+  /* Sinapse — Plataforma de Estudos com IA */
   --radius: 0.75rem;
-  --background: oklch(0.16 0.008 80);
-  --foreground: oklch(0.96 0.008 85);
-  --surface: oklch(0.19 0.009 80);
-  --surface-elevated: oklch(0.23 0.01 80);
-  --card: oklch(0.19 0.009 80);
-  --card-foreground: oklch(0.96 0.008 85);
-  --popover: oklch(0.19 0.009 80);
-  --popover-foreground: oklch(0.96 0.008 85);
-  --primary: oklch(0.88 0.22 128);
-  --primary-foreground: oklch(0.18 0.03 130);
-  --lime: oklch(0.88 0.22 128);
-  --lime-foreground: oklch(0.18 0.03 130);
-  --amber-glow: oklch(0.82 0.16 65);
-  --cyan-data: oklch(0.78 0.12 210);
-  --violet-soft: oklch(0.72 0.14 300);
-  --secondary: oklch(0.26 0.012 80);
-  --secondary-foreground: oklch(0.96 0.008 85);
-  --muted: oklch(0.23 0.01 80);
-  --muted-foreground: oklch(0.68 0.015 80);
-  --accent: oklch(0.88 0.22 128);
-  --accent-foreground: oklch(0.18 0.03 130);
-  --destructive: oklch(0.65 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.88 0.22 128 / 60%);
-  --chart-1: oklch(0.88 0.22 128);
-  --chart-2: oklch(0.78 0.12 210);
-  --chart-3: oklch(0.82 0.16 65);
-  --chart-4: oklch(0.72 0.14 300);
-  --chart-5: oklch(0.65 0.22 25);
-  --sidebar: oklch(0.17 0.008 80);
-  --sidebar-foreground: oklch(0.96 0.008 85);
-  --sidebar-primary: oklch(0.88 0.22 128);
-  --sidebar-primary-foreground: oklch(0.18 0.03 130);
-  --sidebar-accent: oklch(0.23 0.01 80);
-  --sidebar-accent-foreground: oklch(0.96 0.008 85);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.88 0.22 128 / 60%);
 
-  --gradient-hero: radial-gradient(1200px 600px at 50% -10%, oklch(0.88 0.22 128 / 0.14), transparent 60%),
-                   radial-gradient(800px 500px at 80% 20%, oklch(0.78 0.12 210 / 0.10), transparent 60%);
-  --gradient-lime: linear-gradient(135deg, oklch(0.88 0.22 128), oklch(0.82 0.18 145));
-  --shadow-glow: 0 0 0 1px oklch(1 0 0 / 0.06), 0 20px 60px -20px oklch(0.88 0.22 128 / 0.25);
-  --shadow-card: 0 0 0 1px oklch(1 0 0 / 0.05), 0 1px 0 0 oklch(1 0 0 / 0.03) inset;
+  /* Base Backgrounds */
+  --background: #0f0b1f;
+  --foreground: #f5f7ff;
+  
+  /* Surfaces (Cards, Modals, Popovers) */
+  --surface: #21193a;
+  --surface-elevated: #21193a;
+  --card: #21193a;
+  --card-foreground: #f5f7ff;
+  --popover: #21193a;
+  --popover-foreground: #f5f7ff;
+  --muted: #17122b;
+  --muted-foreground: #b8b4d1;
+  
+  /* Borders & Inputs */
+  --border: #3a2a67;
+  --input: #3a2a67;
+  
+  /* Brand Colors */
+  --primary: #a8ff00;
+  --primary-foreground: #0f0b1f; /* Dark text for high contrast on neon green */
+  --secondary: #2a0863;
+  --secondary-foreground: #f5f7ff;
+  --accent: #a8ff00;
+  --accent-foreground: #0f0b1f;
+  --ring: #a8ff00;
+  
+  /* Feedback Colors */
+  --success: #37d67a;
+  --warning: #ffcc33;
+  --destructive: #ff5c7a;
+  --destructive-foreground: #f5f7ff;
+
+  /* Sidebar */
+  --sidebar: #17122b;
+  --sidebar-foreground: #f5f7ff;
+  --sidebar-primary: #a8ff00;
+  --sidebar-primary-foreground: #0f0b1f;
+  --sidebar-accent: #21193a;
+  --sidebar-accent-foreground: #b8b4d1;
+  --sidebar-border: #3a2a67;
+  --sidebar-ring: #a8ff00;
+
+  /* Charts */
+  --chart-1: #a8ff00;
+  --chart-2: #2a0863;
+  --chart-3: #37d67a;
+  --chart-4: #ffcc33;
+  --chart-5: #ff5c7a;
+
+  /* Glow and Shadows */
+  --gradient-hero: radial-gradient(1200px 600px at 50% -10%, rgba(168, 255, 0, 0.1), transparent 60%);
+  --gradient-lime: linear-gradient(135deg, #a8ff00, #37d67a);
+  --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 60px -20px rgba(168, 255, 0, 0.15);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3), 0 0 0 1px #3a2a67;
 }
 
 @layer base {
