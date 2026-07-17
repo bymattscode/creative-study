@@ -168,3 +168,7 @@
 @utility hero-glow {
   background-image: var(--gradient-hero);
 }
+
+/* Hide Lovable Badge */
+#lovable-badge, [id^='lovable-badge-'], div[style*='lovable.dev'] { display: none !important; }
+
