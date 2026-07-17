@@ -126,22 +126,21 @@ export interface PerformanceSnapshot {
 // ==========================================
 
 export interface ReviewItem {
-  id: string; // UUID
-  userId: string; // Fk -> User
-  topicId: string; // Fk -> Topic
-  nextReviewDate: Date;
+  id: string;
+  subjectId: string;
+  topicName: string;
+  nextReviewDate: string; // ISO String
+  lastReviewDate?: string; // ISO String
   intervalDays: number;
-  easeFactor: number;
-  createdAt: Date;
-  updatedAt: Date;
+  confidenceLevel: number; // 0 a 100
+  priority: "Alta" | "Média" | "Baixa";
 }
 
 export interface ReviewLog {
-  id: string; // UUID
-  reviewItemId: string; // Fk -> ReviewItem
-  reviewedAt: Date;
-  confidenceLevel: 1 | 2 | 3 | 4; // 1: Errou/Esqueceu, 2: Difícil, 3: Bom, 4: Fácil
-  durationSeconds: number;
+  id: string;
+  reviewItemId: string;
+  reviewedAt: string;
+  perception: "Fácil" | "Médio" | "Difícil";
 }
 
 // ==========================================
