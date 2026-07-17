@@ -1,46 +1,314 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { BrainCircuit, CheckCircle2, ChevronRight, ChevronLeft, Plus, X, Loader2 } from "lucide-react";
+import { saveOnboardingData, OnboardingData } from "@/lib/onboarding-store";
 
 export const Route = createFileRoute("/onboarding")({
-  component: OnboardingRoute,
+  component: OnboardingWizard,
 });
 
-function OnboardingRoute() {
-  return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-lg text-center space-y-8">
-        <div className="flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
-            <BrainCircuit size={32} />
-          </div>
-        </div>
-        
-        <div>
-          <h1 className="text-4xl font-display font-bold tracking-tight">Bem-vindo ao Sinapse</h1>
-          <p className="text-lg text-muted-foreground mt-4">
-            Nossa IA vai personalizar sua jornada de estudos. Para começarmos, precisamos saber um pouco mais sobre os seus objetivos.
-          </p>
-        </div>
+function OnboardingWizard() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const totalSteps = 5;
+  const progress = ((step - 1) / (totalSteps - 1)) * 100;
 
-        <div className="grid gap-4 pt-4">
-          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
-            <Link to="/app">
-              <span className="font-medium">Estudando para Vestibular / ENEM</span>
-            </Link>
-          </Button>
-          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
-            <Link to="/app">
-              <span className="font-medium">Estudando para Concurso Público</span>
-            </Link>
-          </Button>
-          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
-            <Link to="/app">
-              <span className="font-medium">Estudando para Faculdade</span>
-            </Link>
-          </Button>
+  // Form State
+  const [data, setData] = useState<OnboardingData>({
+    name: "",
+    studentType: "",
+    goalName: "",
+    goalDate: "",
+    hoursPerDay: 4,
+    preferredTime: "",
+    subjects: [{ name: "", difficulty: "Médio" }],
+  });
+
+  const nextStep = () => {
+    if (step < totalSteps) setStep(step + 1);
+  };
+
+  const prevStep = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  // Auto-finish effect on step 5
+  useEffect(() => {
+    if (step === 5) {
+      // Simulate AI loading and save data
+      const timer = setTimeout(() => {
+        saveOnboardingData(data);
+        navigate({ to: "/app" });
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [step, data, navigate]);
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      {/* Header com Progress */}
+      <header className="w-full max-w-3xl mx-auto p-4 md:p-6 mt-4">
+        {step < 5 && (
+          <div className="space-y-4">
+            <Progress value={progress} className="h-2" />
+            <div className="flex items-center justify-between text-sm text-muted-foreground font-medium">
+              <span>Passo {step} de {totalSteps - 1}</span>
+              {step > 1 && (
+                <button onClick={prevStep} className="flex items-center hover:text-primary transition-colors">
+                  <ChevronLeft size={16} className="mr-1" /> Voltar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
+        <div className="w-full max-w-xl">
+          
+          {/* STEP 1: Básico */}
+          {step === 1 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center space-y-2">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-4 shadow-glow">
+                  <BrainCircuit size={24} />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-display font-bold">Como podemos te chamar?</h1>
+                <p className="text-muted-foreground">O primeiro passo para personalizarmos seu plano.</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Seu Nome</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="Ex: João Silva" 
+                    value={data.name}
+                    onChange={(e) => setData({...data, name: e.target.value})}
+                    className="h-12 text-lg"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Qual o seu foco atual?</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {["ENEM / Vestibular", "Concurso Público", "Universidade", "Estudo Livre"].map(type => (
+                      <Card 
+                        key={type}
+                        className={`p-4 cursor-pointer transition-all border-2 ${data.studentType === type ? 'border-primary bg-primary/10' : 'border-transparent hover:border-border'}`}
+                        onClick={() => setData({...data, studentType: type})}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{type}</span>
+                          {data.studentType === type && <CheckCircle2 size={18} className="text-primary" />}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full h-12 text-lg" 
+                  onClick={nextStep}
+                  disabled={!data.name || !data.studentType}
+                >
+                  Continuar <ChevronRight size={20} className="ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Objetivo */}
+          {step === 2 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center space-y-2">
+                <h1 className="text-3xl md:text-4xl font-display font-bold">Qual é a sua grande meta?</h1>
+                <p className="text-muted-foreground">Defina o nome da prova ou objetivo principal.</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="goalName">Nome do Objetivo</Label>
+                  <Input 
+                    id="goalName" 
+                    placeholder="Ex: ENEM 2026, Concurso Banco do Brasil..." 
+                    value={data.goalName}
+                    onChange={(e) => setData({...data, goalName: e.target.value})}
+                    className="h-12 text-lg"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="goalDate">Data da Prova (Opcional)</Label>
+                  <Input 
+                    id="goalDate" 
+                    type="date"
+                    value={data.goalDate || ""}
+                    onChange={(e) => setData({...data, goalDate: e.target.value})}
+                    className="h-12 text-lg block w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">A IA usará isso para montar sua grade regressiva.</p>
+                </div>
+
+                <Button 
+                  className="w-full h-12 text-lg" 
+                  onClick={nextStep}
+                  disabled={!data.goalName}
+                >
+                  Continuar <ChevronRight size={20} className="ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Disponibilidade */}
+          {step === 3 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center space-y-2">
+                <h1 className="text-3xl md:text-4xl font-display font-bold">Sua Rotina</h1>
+                <p className="text-muted-foreground">Quanto tempo você tem disponível?</p>
+              </div>
+
+              <div className="space-y-8">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-end">
+                    <Label>Horas de Estudo por Dia</Label>
+                    <span className="text-3xl font-bold text-primary">{data.hoursPerDay}h</span>
+                  </div>
+                  <Slider 
+                    value={[data.hoursPerDay]} 
+                    min={1} 
+                    max={12} 
+                    step={1} 
+                    onValueChange={(v) => setData({...data, hoursPerDay: v[0]})}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Turno Preferido</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {["manhã", "tarde", "noite", "madrugada"].map(turno => (
+                      <Card 
+                        key={turno}
+                        className={`p-4 cursor-pointer transition-all border-2 text-center capitalize ${data.preferredTime === turno ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-transparent hover:border-border text-muted-foreground'}`}
+                        onClick={() => setData({...data, preferredTime: turno as any})}
+                      >
+                        {turno}
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full h-12 text-lg mt-4" 
+                  onClick={nextStep}
+                  disabled={!data.preferredTime}
+                >
+                  Continuar <ChevronRight size={20} className="ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Matérias */}
+          {step === 4 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center space-y-2">
+                <h1 className="text-3xl md:text-4xl font-display font-bold">Matérias Principais</h1>
+                <p className="text-muted-foreground">Adicione os conteúdos que você precisa dominar.</p>
+              </div>
+
+              <div className="space-y-4">
+                {data.subjects.map((sub, idx) => (
+                  <Card key={idx} className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center relative border-border/50 bg-surface-elevated/50">
+                    {data.subjects.length > 1 && (
+                      <button 
+                        onClick={() => {
+                          const newSubs = [...data.subjects];
+                          newSubs.splice(idx, 1);
+                          setData({...data, subjects: newSubs});
+                        }}
+                        className="absolute -right-2 -top-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                    <div className="flex-1 w-full">
+                      <Input 
+                        placeholder="Nome da matéria (ex: Matemática)" 
+                        value={sub.name}
+                        onChange={(e) => {
+                          const newSubs = [...data.subjects];
+                          newSubs[idx].name = e.target.value;
+                          setData({...data, subjects: newSubs});
+                        }}
+                        className="border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary bg-transparent"
+                      />
+                    </div>
+                    <div className="flex gap-2 w-full md:w-auto">
+                      {["Fácil", "Médio", "Difícil"].map(level => (
+                        <button
+                          key={level}
+                          onClick={() => {
+                            const newSubs = [...data.subjects];
+                            newSubs[idx].difficulty = level as any;
+                            setData({...data, subjects: newSubs});
+                          }}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex-1 md:flex-none ${sub.difficulty === level ? 'bg-primary/20 border-primary text-primary' : 'border-border/50 text-muted-foreground hover:bg-surface'}`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+
+                <Button 
+                  variant="outline" 
+                  className="w-full border-dashed py-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => setData({...data, subjects: [...data.subjects, { name: "", difficulty: "Médio" }]})}
+                >
+                  <Plus size={16} className="mr-2" /> Adicionar Matéria
+                </Button>
+
+                <Button 
+                  className="w-full h-12 text-lg mt-6" 
+                  onClick={nextStep}
+                  disabled={data.subjects.some(s => !s.name.trim())}
+                >
+                  Concluir Perfil <CheckCircle2 size={20} className="ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: Finalizando */}
+          {step === 5 && (
+            <div className="flex flex-col items-center justify-center space-y-6 py-12 animate-in zoom-in duration-500">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full blur-xl bg-primary/20 animate-pulse"></div>
+                <div className="relative h-24 w-24 rounded-full bg-surface-elevated flex items-center justify-center border-2 border-primary shadow-glow">
+                  <BrainCircuit size={40} className="text-primary animate-pulse" />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl font-display font-bold">Sincronizando Sinapses...</h1>
+                <p className="text-muted-foreground">A Inteligência Artificial está montando seu planejamento inicial.</p>
+              </div>
+              <Loader2 className="animate-spin text-primary mt-8" size={32} />
+            </div>
+          )}
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }
