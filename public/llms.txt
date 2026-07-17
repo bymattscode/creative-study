@@ -1,0 +1,12 @@
+# Sinapse
+
+> Plataforma de estudos com IA: revisões espaçadas SM-2, planner por edital, flashcards gerados por IA e métricas de evolução.
+
+Sinapse ajuda estudantes a organizar seu edital, revisar no momento certo e ver evolução real semana a semana. Usa o algoritmo SM-2 e IA para sugerir o que estudar.
+
+## Pages
+
+- [Home](/): visão geral do produto, features e planos
+- [Recursos](/features): detalhes de cada recurso do app
+- [Preços](/precos): planos Grátis, Pro e Anual
+- [Sobre](/sobre): filosofia por trás do produto
