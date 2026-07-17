@@ -15,6 +15,7 @@ import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppUpgradeRouteImport } from './routes/app/upgrade'
 import { Route as AppRevisoesRouteImport } from './routes/app/revisoes'
 import { Route as AppPlanoRouteImport } from './routes/app/plano'
 import { Route as AppMateriasRouteImport } from './routes/app/materias'
@@ -50,6 +51,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUpgradeRoute = AppUpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRevisoesRoute = AppRevisoesRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/app/materias': typeof AppMateriasRoute
   '/app/plano': typeof AppPlanoRoute
   '/app/revisoes': typeof AppRevisoesRoute
+  '/app/upgrade': typeof AppUpgradeRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/app/materias': typeof AppMateriasRoute
   '/app/plano': typeof AppPlanoRoute
   '/app/revisoes': typeof AppRevisoesRoute
+  '/app/upgrade': typeof AppUpgradeRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/app/materias': typeof AppMateriasRoute
   '/app/plano': typeof AppPlanoRoute
   '/app/revisoes': typeof AppRevisoesRoute
+  '/app/upgrade': typeof AppUpgradeRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/app/materias'
     | '/app/plano'
     | '/app/revisoes'
+    | '/app/upgrade'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/app/materias'
     | '/app/plano'
     | '/app/revisoes'
+    | '/app/upgrade'
     | '/app'
   id:
     | '__root__'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/app/materias'
     | '/app/plano'
     | '/app/revisoes'
+    | '/app/upgrade'
     | '/app/'
   fileRoutesById: FileRoutesById
 }
@@ -221,6 +233,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/upgrade': {
+      id: '/app/upgrade'
+      path: '/upgrade'
+      fullPath: '/app/upgrade'
+      preLoaderRoute: typeof AppUpgradeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/revisoes': {
       id: '/app/revisoes'
       path: '/revisoes'
@@ -273,6 +292,7 @@ interface AppRouteChildren {
   AppMateriasRoute: typeof AppMateriasRoute
   AppPlanoRoute: typeof AppPlanoRoute
   AppRevisoesRoute: typeof AppRevisoesRoute
+  AppUpgradeRoute: typeof AppUpgradeRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -283,6 +303,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMateriasRoute: AppMateriasRoute,
   AppPlanoRoute: AppPlanoRoute,
   AppRevisoesRoute: AppRevisoesRoute,
+  AppUpgradeRoute: AppUpgradeRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

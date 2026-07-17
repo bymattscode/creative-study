@@ -89,7 +89,7 @@ function DashboardRoute() {
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
       
       {/* IA Insight Card (Copiloto) */}
-      {insight && (
+      {profile?.subscriptionTier === 'pro' && insight && (
         <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20 shadow-glow mb-6">
           <CardContent className="p-4 flex items-start sm:items-center gap-4">
             <div className="h-10 w-10 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-primary animate-pulse">
@@ -99,6 +99,28 @@ function DashboardRoute() {
               <p className="text-sm font-bold text-foreground mb-0.5">Copiloto de Estudos</p>
               <p className="text-sm text-muted-foreground">{insight}</p>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Paywall Soft - IA Insight Card (Copiloto) */}
+      {profile?.subscriptionTier !== 'pro' && (
+        <Card className="bg-surface-elevated border-border mb-6 group cursor-pointer hover:border-primary/50 transition-colors" onClick={() => window.location.href = '/app/upgrade'}>
+          <CardContent className="p-4 flex items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors mb-0.5">Copiloto Inteligente</p>
+                <p className="text-sm text-muted-foreground/60">Análise diária de comportamento bloqueada no plano gratuito.</p>
+              </div>
+            </div>
+            <Link to="/app/upgrade">
+              <Button variant="outline" size="sm" className="hidden sm:flex text-primary border-primary/30">
+                Desbloquear IA
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       )}

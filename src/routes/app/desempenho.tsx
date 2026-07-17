@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Subject, StudySession } from "@/types/models";
+import { Subject, StudySession, UserProfile } from "@/types/models";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { UpgradePaywall } from "@/components/ui/upgrade-paywall";
 import { 
   BarChart, 
   Bar, 
@@ -46,14 +47,17 @@ const ACTIVITY_COLORS: Record<string, string> = {
 function DesempenhoRoute() {
   const [history, setHistory] = useState<StudySession[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     try {
       const h = localStorage.getItem("@sinapse:studyHistory");
       const s = localStorage.getItem("@sinapse:subjects");
+      const p = localStorage.getItem("@sinapse:userProfile");
       
       if (h) setHistory(JSON.parse(h));
       if (s) setSubjects(JSON.parse(s));
+      if (p) setProfile(JSON.parse(p));
     } catch (e) {
       console.error(e);
     }
@@ -196,119 +200,127 @@ function DesempenhoRoute() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Gráfico 7 Dias */}
-        <Card className="bg-surface-elevated border-border shadow-sm col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><CalendarDays size={18} className="text-primary" /> Esforço (Últimos 7 Dias)</CardTitle>
-            <CardDescription>Minutos líquidos diários investidos na semana</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72 w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weekData}>
-                  <XAxis dataKey="name" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}m`} />
-                  <Tooltip 
-                    cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} 
-                    contentStyle={{ backgroundColor: '#21193a', borderColor: '#3a2a67', borderRadius: '8px', color: '#f5f7ff' }}
-                    itemStyle={{ color: '#a8ff00' }}
-                  />
-                  <Bar dataKey="minutos" fill="#a8ff00" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Distribuição por Matéria */}
-        <Card className="bg-surface-elevated border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><BrainCircuit size={18} className="text-primary" /> Foco por Matéria</CardTitle>
-            <CardDescription>Onde você tem gasto mais energia</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            {subjectData.length > 0 ? (
-              <>
-                <div className="h-48 w-full">
+        <div className="col-span-1 lg:col-span-2">
+          <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Gráficos Detalhados" description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Sinapse Pro.">
+            <Card className="bg-surface-elevated border-border shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><CalendarDays size={18} className="text-primary" /> Esforço (Últimos 7 Dias)</CardTitle>
+                <CardDescription>Minutos líquidos diários investidos na semana</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-72 w-full mt-4">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={subjectData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {subjectData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
+                    <BarChart data={weekData}>
+                      <XAxis dataKey="name" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}m`} />
                       <Tooltip 
+                        cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} 
                         contentStyle={{ backgroundColor: '#21193a', borderColor: '#3a2a67', borderRadius: '8px', color: '#f5f7ff' }}
-                        formatter={(value) => [`${value} min`, 'Tempo']}
+                        itemStyle={{ color: '#a8ff00' }}
                       />
-                    </PieChart>
+                      <Bar dataKey="minutos" fill="#a8ff00" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex flex-wrap gap-3 mt-4 justify-center">
-                  {subjectData.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span>{s.name} ({Math.round((s.value / totalMinutes) * 100)}%)</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="py-12 text-sm text-muted-foreground text-center">Nenhum dado vinculável a matérias.</div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </UpgradePaywall>
+        </div>
+
+        {/* Distribuição por Matéria */}
+        <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Distribuição de Matérias" description="Veja exatamente onde você está gastando seu tempo e corrija desvios no plano Pro.">
+          <Card className="bg-surface-elevated border-border shadow-sm h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><BrainCircuit size={18} className="text-primary" /> Foco por Matéria</CardTitle>
+              <CardDescription>Onde você tem gasto mais energia</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              {subjectData.length > 0 ? (
+                <>
+                  <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={subjectData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {subjectData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#21193a', borderColor: '#3a2a67', borderRadius: '8px', color: '#f5f7ff' }}
+                          formatter={(value) => [`${value} min`, 'Tempo']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-4 justify-center">
+                    {subjectData.map((s, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                        <span>{s.name} ({Math.round((s.value / totalMinutes) * 100)}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="py-12 text-sm text-muted-foreground text-center">Nenhum dado vinculável a matérias.</div>
+              )}
+            </CardContent>
+          </Card>
+        </UpgradePaywall>
 
         {/* Perfil de Estudante (Tipos de Atividade) */}
-        <Card className="bg-surface-elevated border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-primary" /> Perfil de Estudante</CardTitle>
-            <CardDescription>O que você mais faz durante os blocos?</CardDescription>
-          </CardHeader>
-          <CardContent>
-            
-            <div className="mb-6 mt-2">
-              <h3 className="text-sm font-bold text-foreground mb-1">Tendência Dominante</h3>
-              <p className="text-xs text-muted-foreground">
-                Seu perfil atual é de absorção baseada em <strong>{topType}</strong>. 
-                {typeData[0]?.type === "teoria" && " Cuidado com a passividade, tente resolver mais questões!"}
-                {typeData[0]?.type === "questoes" && " Excelente perfil ativo!"}
-              </p>
-            </div>
+        <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Perfil do Estudante" description="Descubra se você é um estudante passivo ou ativo assinando o Sinapse Pro.">
+          <Card className="bg-surface-elevated border-border shadow-sm h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-primary" /> Perfil de Estudante</CardTitle>
+              <CardDescription>O que você mais faz durante os blocos?</CardDescription>
+            </CardHeader>
+            <CardContent>
+              
+              <div className="mb-6 mt-2">
+                <h3 className="text-sm font-bold text-foreground mb-1">Tendência Dominante</h3>
+                <p className="text-xs text-muted-foreground">
+                  Seu perfil atual é de absorção baseada em <strong>{topType}</strong>. 
+                  {typeData[0]?.type === "teoria" && " Cuidado com a passividade, tente resolver mais questões!"}
+                  {typeData[0]?.type === "questoes" && " Excelente perfil ativo!"}
+                </p>
+              </div>
 
-            <div className="space-y-4">
-              {typeData.map((t, i) => {
-                const percent = Math.round((t.value / totalMinutes) * 100);
-                return (
-                  <div key={i}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-bold flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }}></div>
-                        {t.label}
-                      </span>
-                      <span className="text-muted-foreground">{percent}% ({t.value}m)</span>
+              <div className="space-y-4">
+                {typeData.map((t, i) => {
+                  const percent = Math.round((t.value / totalMinutes) * 100);
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-bold flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }}></div>
+                          {t.label}
+                        </span>
+                        <span className="text-muted-foreground">{percent}% ({t.value}m)</span>
+                      </div>
+                      <div className="w-full bg-background rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="h-full rounded-full" 
+                          style={{ width: `${percent}%`, backgroundColor: t.color }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-background rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="h-full rounded-full" 
-                        style={{ width: `${percent}%`, backgroundColor: t.color }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </div>
+              
+            </CardContent>
+          </Card>
+        </UpgradePaywall>
 
       </div>
     </div>
