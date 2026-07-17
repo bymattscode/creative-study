@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { UserProfile, Goal, Subject, StudySession } from "@/types/models";
+import { UserProfile, Goal, Subject, StudySession, ReviewItem } from "@/types/models";
+import { generateDailyInsight } from "@/lib/ai-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -27,6 +28,8 @@ function DashboardRoute() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [history, setHistory] = useState<StudySession[]>([]);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [insight, setInsight] = useState<string>("");
 
   useEffect(() => {
     try {
@@ -34,11 +37,19 @@ function DashboardRoute() {
       const g = localStorage.getItem("@sinapse:currentGoal");
       const s = localStorage.getItem("@sinapse:subjects");
       const h = localStorage.getItem("@sinapse:studyHistory");
+      const r = localStorage.getItem("@sinapse:reviewItems");
       
-      if (p) setProfile(JSON.parse(p));
-      if (g) setGoal(JSON.parse(g));
-      if (s) setSubjects(JSON.parse(s));
-      if (h) setHistory(JSON.parse(h));
+      let pObj, gObj, sObj, hObj, rObj;
+      
+      if (p) { pObj = JSON.parse(p); setProfile(pObj); }
+      if (g) { gObj = JSON.parse(g); setGoal(gObj); }
+      if (s) { sObj = JSON.parse(s); setSubjects(sObj); }
+      if (h) { hObj = JSON.parse(h); setHistory(hObj); }
+      if (r) { rObj = JSON.parse(r); setReviews(rObj); }
+      
+      // Gerando Insight
+      setInsight(generateDailyInsight(hObj || [], rObj || [], sObj || []));
+      
     } catch (e) {
       console.error(e);
     }
@@ -77,8 +88,23 @@ function DashboardRoute() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
       
-      {/* 1. Saudação Contextual e Atalhos Rápidos */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* IA Insight Card (Copiloto) */}
+      {insight && (
+        <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20 shadow-glow mb-6">
+          <CardContent className="p-4 flex items-start sm:items-center gap-4">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-primary animate-pulse">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground mb-0.5">Copiloto de Estudos</p>
+              <p className="text-sm text-muted-foreground">{insight}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Saudação e Objetivo */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <p className="text-muted-foreground font-medium flex items-center gap-2 uppercase tracking-widest text-xs mb-1">
             <Sparkles size={14} className="text-primary" /> Seu Centro de Comando
