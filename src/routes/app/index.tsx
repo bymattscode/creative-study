@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { UserProfile, Goal, Subject } from "@/types/models";
+import { UserProfile, Goal, Subject, StudySession } from "@/types/models";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -26,16 +26,19 @@ function DashboardRoute() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [history, setHistory] = useState<StudySession[]>([]);
 
   useEffect(() => {
     try {
       const p = localStorage.getItem("@sinapse:userProfile");
       const g = localStorage.getItem("@sinapse:currentGoal");
       const s = localStorage.getItem("@sinapse:subjects");
+      const h = localStorage.getItem("@sinapse:studyHistory");
       
       if (p) setProfile(JSON.parse(p));
       if (g) setGoal(JSON.parse(g));
       if (s) setSubjects(JSON.parse(s));
+      if (h) setHistory(JSON.parse(h));
     } catch (e) {
       console.error(e);
     }
@@ -58,6 +61,19 @@ function DashboardRoute() {
 
   const daysRemaining = goal?.targetDate ? getDaysRemaining(goal.targetDate) : null;
 
+  // Calculando Horas Líquidas Totais
+  const totalMinutes = history.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
+  const netHours = Math.floor(totalMinutes / 60);
+  const netMins = totalMinutes % 60;
+  
+  // Calculando Meta Semanal Simples (Ex: Meta de 20h = 1200min)
+  const weeklyGoalMins = 20 * 60; 
+  const progressPercent = Math.min(100, (totalMinutes / weeklyGoalMins) * 100);
+
+  // Calculando Ofensiva (Dias únicos no histórico)
+  const uniqueDates = new Set(history.map(s => new Date(s.createdAt).toDateString()));
+  const offensiveDays = uniqueDates.size;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
       
@@ -75,15 +91,15 @@ function DashboardRoute() {
         {/* Constância Rápida Header */}
         <div className="flex items-center gap-3 bg-surface-elevated px-5 py-2.5 rounded-2xl border border-border shadow-sm">
           <div className="flex -space-x-1">
-            {/* Mock de Constância de 5 dias */}
+            {/* Mock de Constância Visual */}
             {["S", "T", "Q", "Q", "S"].map((d, i) => (
-              <div key={i} className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${i < 3 ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground'}`}>
+              <div key={i} className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${i < Math.min(offensiveDays, 5) ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground'}`}>
                 {d}
               </div>
             ))}
           </div>
           <div className="flex flex-col ml-2">
-            <span className="text-sm font-bold flex items-center gap-1"><Flame size={14} className="text-orange-500" /> 3 dias</span>
+            <span className="text-sm font-bold flex items-center gap-1"><Flame size={14} className={offensiveDays > 0 ? "text-orange-500" : "text-muted-foreground"} /> {offensiveDays} dias</span>
             <span className="text-[10px] uppercase text-muted-foreground tracking-widest">Ofensiva</span>
           </div>
         </div>
@@ -178,14 +194,16 @@ function DashboardRoute() {
           {/* Card: Horas Líquidas */}
           <Card className="bg-surface-elevated border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Horas Líquidas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Horas Líquidas Totais</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-display font-bold">14<span className="text-xl text-muted-foreground">h</span> 30<span className="text-xl text-muted-foreground">m</span></span>
+                <span className="text-4xl font-display font-bold">
+                  {netHours}<span className="text-xl text-muted-foreground">h</span> {netMins}<span className="text-xl text-muted-foreground">m</span>
+                </span>
               </div>
-              <Progress value={65} className="h-2 mb-2" />
-              <p className="text-xs text-muted-foreground">65% da meta semanal atingida</p>
+              <Progress value={progressPercent} className="h-2 mb-2" />
+              <p className="text-xs text-muted-foreground">{progressPercent.toFixed(0)}% da meta de 20h semanais</p>
             </CardContent>
           </Card>
         </div>
