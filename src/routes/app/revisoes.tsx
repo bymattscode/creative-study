@@ -181,7 +181,7 @@ function RevisoesRoute() {
     const isExpanded = expandedCard === item.id;
 
     return (
-      <Card className="bg-surface-elevated border-border shadow-sm mb-3 overflow-hidden transition-all duration-300">
+      <Card className="bg-surface-elevated border-border shadow-sm mb-3 overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-glow group">
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2">

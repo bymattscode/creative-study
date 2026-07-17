@@ -207,7 +207,7 @@ function PlanoSemanalRoute() {
   const hasEmptyPlan = plan.every(day => day.items.length === 0);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto pb-24 lg:pb-12">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -235,12 +235,14 @@ function PlanoSemanalRoute() {
       </div>
 
       {hasEmptyPlan && !isGenerating ? (
-        <Card className="bg-surface border-dashed border-2 py-12">
+        <Card className="bg-surface/30 border-dashed border-border/50 py-16 shadow-none">
           <CardContent className="flex flex-col items-center text-center space-y-4">
-            <CalendarDays size={48} className="text-muted-foreground opacity-50" />
+            <CalendarDays size={56} className="text-muted-foreground/20" />
             <div>
-              <p className="font-medium text-lg">Semana Vazia</p>
-              <p className="text-muted-foreground">Clique no botão acima para deixar a IA estruturar seus blocos.</p>
+              <p className="font-display font-bold text-xl text-foreground">Sua semana está em branco</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+                Clique no botão acima para deixar a Inteligência Artificial estruturar seus blocos de estudo.
+              </p>
             </div>
           </CardContent>
         </Card>

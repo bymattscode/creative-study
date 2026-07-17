@@ -299,8 +299,8 @@ function EstudoRoute() {
 
           <Button 
             size="icon" 
-            className={`h-16 w-16 rounded-full shadow-lg transition-transform hover:scale-105 
-              ${mode === "Foco" ? "" : mode === "Livre" ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"}`}
+            className={`h-16 w-16 rounded-full shadow-glow transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_rgba(168,255,0,0.4)]
+              ${mode === "Foco" ? "bg-primary text-primary-foreground hover:bg-primary" : mode === "Livre" ? "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/50" : "bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-none"}`}
             onClick={toggleTimer}
           >
             {isActive ? <Pause size={28} /> : <Play size={28} className="ml-1" />}

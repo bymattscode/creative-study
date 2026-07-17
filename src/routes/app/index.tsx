@@ -16,7 +16,8 @@ import {
   Flame,
   CheckCircle2,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  BookOpen
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({
@@ -260,7 +261,7 @@ function DashboardRoute() {
         <div className="space-y-6 md:col-span-1">
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader className="border-b border-border/50 pb-4">
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between font-display text-lg">
                 Missões de Hoje
                 <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-bold">3 pendentes</span>
               </CardTitle>
@@ -304,7 +305,7 @@ function DashboardRoute() {
         <div className="space-y-6 md:col-span-1">
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader className="border-b border-border/50 pb-4">
-              <CardTitle>Progresso no Edital</CardTitle>
+              <CardTitle className="font-display text-lg">Progresso no Edital</CardTitle>
               <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 space-y-5">
@@ -326,8 +327,15 @@ function DashboardRoute() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6">
-                  <p className="text-sm text-muted-foreground">Nenhuma matéria vinculada.</p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
+                  <p className="text-sm font-bold text-foreground">Sua lista está vazia</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+                    Cadastre suas matérias nas configurações para começar.
+                  </p>
+                  <Button variant="link" className="text-primary text-xs mt-2" asChild>
+                    <Link to="/app/configuracoes">Ir para Configurações</Link>
+                  </Button>
                 </div>
               )}
 

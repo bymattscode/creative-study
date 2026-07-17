@@ -21,6 +21,9 @@ import {
   Settings,
   LogOut
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { UserProfile } from "@/types/models";
+import { Badge } from "@/components/ui/badge";
 
 // Itens do menu principal
 const mainNavItems = [
@@ -35,17 +38,30 @@ const mainNavItems = [
 export function AppSidebar() {
   const routerState = useRouterState();
   const pathname = routerState.location.pathname;
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    try {
+      const p = localStorage.getItem("@sinapse:userProfile");
+      if (p) setProfile(JSON.parse(p));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   return (
     <Sidebar variant="inset">
       <SidebarHeader className="border-b border-border/50 py-4 px-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-glow">
             <BrainCircuit size={18} />
           </div>
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
             Sinapse
           </span>
+          {profile?.subscriptionTier === 'pro' && (
+            <Badge variant="outline" className="ml-1 border-primary/50 text-primary bg-primary/10 text-[10px] px-1.5 py-0">PRO</Badge>
+          )}
         </div>
       </SidebarHeader>
 

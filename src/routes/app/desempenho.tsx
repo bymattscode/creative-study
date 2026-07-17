@@ -144,7 +144,7 @@ function DesempenhoRoute() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto pb-24 lg:pb-12">
       
       {/* Header */}
       <div>
@@ -204,7 +204,7 @@ function DesempenhoRoute() {
           <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Gráficos Detalhados" description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Sinapse Pro.">
             <Card className="bg-surface-elevated border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><CalendarDays size={18} className="text-primary" /> Esforço (Últimos 7 Dias)</CardTitle>
+                <CardTitle className="flex items-center gap-2 font-display text-lg"><CalendarDays size={18} className="text-primary" /> Esforço (Últimos 7 Dias)</CardTitle>
                 <CardDescription>Minutos líquidos diários investidos na semana</CardDescription>
               </CardHeader>
               <CardContent>
@@ -231,7 +231,7 @@ function DesempenhoRoute() {
         <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Distribuição de Matérias" description="Veja exatamente onde você está gastando seu tempo e corrija desvios no plano Pro.">
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><BrainCircuit size={18} className="text-primary" /> Foco por Matéria</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display text-lg"><BrainCircuit size={18} className="text-primary" /> Foco por Matéria</CardTitle>
               <CardDescription>Onde você tem gasto mais energia</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
@@ -281,7 +281,7 @@ function DesempenhoRoute() {
         <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Perfil do Estudante" description="Descubra se você é um estudante passivo ou ativo assinando o Sinapse Pro.">
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-primary" /> Perfil de Estudante</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display text-lg"><TrendingUp size={18} className="text-primary" /> Perfil de Estudante</CardTitle>
               <CardDescription>O que você mais faz durante os blocos?</CardDescription>
             </CardHeader>
             <CardContent>
