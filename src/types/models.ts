@@ -18,7 +18,7 @@ export interface UserProfile {
   name: string;
   avatarUrl?: string;
   currentGoalId?: string; // Fk -> Goal
-  subscriptionTier?: 'free' | 'pro'; // Controle de Paywall e Monetização
+  subscriptionTier?: "free" | "pro"; // Controle de Paywall e Monetização
   preferences: {
     theme: "light" | "dark" | "system";
     notificationsEnabled: boolean;

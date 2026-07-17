@@ -64,7 +64,7 @@
   /* Base Backgrounds */
   --background: #0f0b1f;
   --foreground: #f5f7ff;
-  
+
   /* Surfaces (Cards, Modals, Popovers) */
   --surface: #21193a;
   --surface-elevated: #21193a;
@@ -74,11 +74,11 @@
   --popover-foreground: #f5f7ff;
   --muted: #17122b;
   --muted-foreground: #b8b4d1;
-  
+
   /* Borders & Inputs */
   --border: #3a2a67;
   --input: #3a2a67;
-  
+
   /* Brand Colors */
   --primary: #a8ff00;
   --primary-foreground: #0f0b1f; /* Dark text for high contrast on neon green */
@@ -87,7 +87,7 @@
   --accent: #a8ff00;
   --accent-foreground: #0f0b1f;
   --ring: #a8ff00;
-  
+
   /* Feedback Colors */
   --success: #37d67a;
   --warning: #ffcc33;
@@ -112,10 +112,15 @@
   --chart-5: #ff5c7a;
 
   /* Glow and Shadows */
-  --gradient-hero: radial-gradient(1200px 600px at 50% -10%, rgba(168, 255, 0, 0.1), transparent 60%);
+  --gradient-hero: radial-gradient(
+    1200px 600px at 50% -10%,
+    rgba(168, 255, 0, 0.1),
+    transparent 60%
+  );
   --gradient-lime: linear-gradient(135deg, #a8ff00, #37d67a);
   --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 60px -20px rgba(168, 255, 0, 0.15);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3), 0 0 0 1px #3a2a67;
+  --shadow-card:
+    0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3), 0 0 0 1px #3a2a67;
 }
 
 @layer base {
@@ -140,7 +145,10 @@
     background-position: -1px -1px;
   }
 
-  h1, h2, h3, .font-display {
+  h1,
+  h2,
+  h3,
+  .font-display {
     font-family: var(--font-display);
     font-optical-sizing: auto;
     letter-spacing: -0.02em;

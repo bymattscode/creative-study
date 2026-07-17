@@ -1,27 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Subject, StudySession, UserProfile } from "@/types/models";
+import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UpgradePaywall } from "@/components/ui/upgrade-paywall";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from "recharts";
-import { 
-  TrendingUp, 
-  Clock, 
-  Flame, 
+import {
+  TrendingUp,
+  Clock,
+  Flame,
   Target,
   BrainCircuit,
   BarChart3,
-  CalendarDays
+  CalendarDays,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/desempenho")({
@@ -33,7 +33,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   questoes: "Questões",
   revisao: "Revisão",
   leitura: "Leitura",
-  redacao: "Redação"
+  redacao: "Redação",
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
@@ -41,34 +41,20 @@ const ACTIVITY_COLORS: Record<string, string> = {
   questoes: "#f97316", // orange
   revisao: "#8b5cf6", // purple
   leitura: "#22c55e", // green
-  redacao: "#ec4899" // pink
+  redacao: "#ec4899", // pink
 };
 
 function DesempenhoRoute() {
-  const [history, setHistory] = useState<StudySession[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    try {
-      const h = localStorage.getItem("@sinapse:studyHistory");
-      const s = localStorage.getItem("@sinapse:subjects");
-      const p = localStorage.getItem("@sinapse:userProfile");
-      
-      if (h) setHistory(JSON.parse(h));
-      if (s) setSubjects(JSON.parse(s));
-      if (p) setProfile(JSON.parse(p));
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const [history] = useSyncStorage<StudySession[]>("@sinapse:studyHistory", []);
+  const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
+  const [profile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
 
   // 1. Cálculos Gerais
   const totalMinutes = history.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
   const netHours = Math.floor(totalMinutes / 60);
   const netMins = totalMinutes % 60;
 
-  const uniqueDates = new Set(history.map(s => new Date(s.createdAt).toDateString()));
+  const uniqueDates = new Set(history.map((s) => new Date(s.createdAt).toDateString()));
   const offensiveDays = uniqueDates.size;
 
   const totalSessions = history.length;
@@ -77,19 +63,19 @@ function DesempenhoRoute() {
   const getLast7DaysData = () => {
     const data = [];
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const dateStr = d.toDateString();
-      
-      const daySessions = history.filter(s => new Date(s.createdAt).toDateString() === dateStr);
+
+      const daySessions = history.filter((s) => new Date(s.createdAt).toDateString() === dateStr);
       const dayMinutes = daySessions.reduce((acc, s) => acc + s.durationMinutes, 0);
 
       data.push({
-        name: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
-        minutos: dayMinutes
+        name: d.toLocaleDateString("pt-BR", { weekday: "short" }),
+        minutos: dayMinutes,
       });
     }
     return data;
@@ -99,33 +85,37 @@ function DesempenhoRoute() {
   // 3. Distribuição por Matéria
   const getSubjectDistribution = () => {
     const distribution: Record<string, number> = {};
-    history.forEach(s => {
-      const name = subjects.find(sub => sub.id === s.subjectId)?.name || "Outros";
+    history.forEach((s) => {
+      const name = subjects.find((sub) => sub.id === s.subjectId)?.name || "Outros";
       distribution[name] = (distribution[name] || 0) + s.durationMinutes;
     });
 
-    return Object.entries(distribution).map(([name, value]) => ({
-      name,
-      value,
-      color: subjects.find(sub => sub.name === name)?.color || "#6b7280"
-    })).sort((a,b) => b.value - a.value); // sort by highest
+    return Object.entries(distribution)
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: subjects.find((sub) => sub.name === name)?.color || "#6b7280",
+      }))
+      .sort((a, b) => b.value - a.value); // sort by highest
   };
   const subjectData = getSubjectDistribution();
 
   // 4. Distribuição por Tipo de Sessão
   const getTypeDistribution = () => {
     const distribution: Record<string, number> = {};
-    history.forEach(s => {
+    history.forEach((s) => {
       const type = s.type || "teoria";
       distribution[type] = (distribution[type] || 0) + s.durationMinutes;
     });
 
-    return Object.entries(distribution).map(([type, value]) => ({
-      type,
-      label: ACTIVITY_LABELS[type] || type,
-      value,
-      color: ACTIVITY_COLORS[type] || "#a8ff00"
-    })).sort((a,b) => b.value - a.value);
+    return Object.entries(distribution)
+      .map(([type, value]) => ({
+        type,
+        label: ACTIVITY_LABELS[type] || type,
+        value,
+        color: ACTIVITY_COLORS[type] || "#a8ff00",
+      }))
+      .sort((a, b) => b.value - a.value);
   };
   const typeData = getTypeDistribution();
   const topType = typeData.length > 0 ? typeData[0].label : "-";
@@ -135,9 +125,12 @@ function DesempenhoRoute() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-500 max-w-4xl mx-auto text-center">
         <BarChart3 size={64} className="text-muted-foreground opacity-20 mb-6" />
-        <h1 className="text-3xl font-display font-bold text-foreground mb-2">Seu Radar está Vazio</h1>
+        <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+          Seu Radar está Vazio
+        </h1>
         <p className="text-muted-foreground max-w-md">
-          Os gráficos ganharão vida assim que você concluir sua primeira sessão no Estúdio de Foco. Volte aqui depois de estudar!
+          Os gráficos ganharão vida assim que você concluir sua primeira sessão no Estúdio de Foco.
+          Volte aqui depois de estudar!
         </p>
       </div>
     );
@@ -145,11 +138,12 @@ function DesempenhoRoute() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto pb-24 lg:pb-12">
-      
       {/* Header */}
       <div>
         <h1 className="text-3xl font-display font-bold text-foreground">Analytics</h1>
-        <p className="text-muted-foreground text-sm">Leitura do seu progresso e ritmo de aprendizado.</p>
+        <p className="text-muted-foreground text-sm">
+          Leitura do seu progresso e ritmo de aprendizado.
+        </p>
       </div>
 
       {/* Overview Cards */}
@@ -160,9 +154,11 @@ function DesempenhoRoute() {
               <Clock size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Horas Líquidas</p>
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                Horas Líquidas
+              </p>
               <h2 className="text-2xl font-bold font-display">
-                {netHours}h {netMins > 0 ? `${netMins}m` : ''}
+                {netHours}h {netMins > 0 ? `${netMins}m` : ""}
               </h2>
             </div>
           </CardContent>
@@ -174,10 +170,10 @@ function DesempenhoRoute() {
               <Flame size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Ofensiva</p>
-              <h2 className="text-2xl font-bold font-display">
-                {offensiveDays} dias
-              </h2>
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                Ofensiva
+              </p>
+              <h2 className="text-2xl font-bold font-display">{offensiveDays} dias</h2>
             </div>
           </CardContent>
         </Card>
@@ -188,35 +184,57 @@ function DesempenhoRoute() {
               <Target size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Sessões</p>
-              <h2 className="text-2xl font-bold font-display">
-                {totalSessions} concluídas
-              </h2>
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                Sessões
+              </p>
+              <h2 className="text-2xl font-bold font-display">{totalSessions} concluídas</h2>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Gráfico 7 Dias */}
         <div className="col-span-1 lg:col-span-2">
-          <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Gráficos Detalhados" description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Sinapse Pro.">
+          <UpgradePaywall
+            isPro={profile?.subscriptionTier === "pro"}
+            title="Gráficos Detalhados"
+            description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Sinapse Pro."
+          >
             <Card className="bg-surface-elevated border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-display text-lg"><CalendarDays size={18} className="text-primary" /> Esforço (Últimos 7 Dias)</CardTitle>
+                <CardTitle className="flex items-center gap-2 font-display text-lg">
+                  <CalendarDays size={18} className="text-primary" /> Esforço (Últimos 7 Dias)
+                </CardTitle>
                 <CardDescription>Minutos líquidos diários investidos na semana</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-72 w-full mt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={weekData}>
-                      <XAxis dataKey="name" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}m`} />
-                      <Tooltip 
-                        cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} 
-                        contentStyle={{ backgroundColor: '#21193a', borderColor: '#3a2a67', borderRadius: '8px', color: '#f5f7ff' }}
-                        itemStyle={{ color: '#a8ff00' }}
+                      <XAxis
+                        dataKey="name"
+                        stroke="#6b7280"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="#6b7280"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) => `${val}m`}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(255, 255, 255, 0.05)" }}
+                        contentStyle={{
+                          backgroundColor: "#21193a",
+                          borderColor: "#3a2a67",
+                          borderRadius: "8px",
+                          color: "#f5f7ff",
+                        }}
+                        itemStyle={{ color: "#a8ff00" }}
                       />
                       <Bar dataKey="minutos" fill="#a8ff00" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -228,10 +246,16 @@ function DesempenhoRoute() {
         </div>
 
         {/* Distribuição por Matéria */}
-        <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Distribuição de Matérias" description="Veja exatamente onde você está gastando seu tempo e corrija desvios no plano Pro.">
+        <UpgradePaywall
+          isPro={profile?.subscriptionTier === "pro"}
+          title="Distribuição de Matérias"
+          description="Veja exatamente onde você está gastando seu tempo e corrija desvios no plano Pro."
+        >
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-lg"><BrainCircuit size={18} className="text-primary" /> Foco por Matéria</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display text-lg">
+                <BrainCircuit size={18} className="text-primary" /> Foco por Matéria
+              </CardTitle>
               <CardDescription>Onde você tem gasto mais energia</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
@@ -254,43 +278,64 @@ function DesempenhoRoute() {
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#21193a', borderColor: '#3a2a67', borderRadius: '8px', color: '#f5f7ff' }}
-                          formatter={(value) => [`${value} min`, 'Tempo']}
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#21193a",
+                            borderColor: "#3a2a67",
+                            borderRadius: "8px",
+                            color: "#f5f7ff",
+                          }}
+                          formatter={(value) => [`${value} min`, "Tempo"]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="flex flex-wrap gap-3 mt-4 justify-center">
                     {subjectData.map((s, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                        <span>{s.name} ({Math.round((s.value / totalMinutes) * 100)}%)</span>
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        <span>
+                          {s.name} ({Math.round((s.value / totalMinutes) * 100)}%)
+                        </span>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
-                <div className="py-12 text-sm text-muted-foreground text-center">Nenhum dado vinculável a matérias.</div>
+                <div className="py-12 text-sm text-muted-foreground text-center">
+                  Nenhum dado vinculável a matérias.
+                </div>
               )}
             </CardContent>
           </Card>
         </UpgradePaywall>
 
         {/* Perfil de Estudante (Tipos de Atividade) */}
-        <UpgradePaywall isPro={profile?.subscriptionTier === 'pro'} title="Perfil do Estudante" description="Descubra se você é um estudante passivo ou ativo assinando o Sinapse Pro.">
+        <UpgradePaywall
+          isPro={profile?.subscriptionTier === "pro"}
+          title="Perfil do Estudante"
+          description="Descubra se você é um estudante passivo ou ativo assinando o Sinapse Pro."
+        >
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-lg"><TrendingUp size={18} className="text-primary" /> Perfil de Estudante</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display text-lg">
+                <TrendingUp size={18} className="text-primary" /> Perfil de Estudante
+              </CardTitle>
               <CardDescription>O que você mais faz durante os blocos?</CardDescription>
             </CardHeader>
             <CardContent>
-              
               <div className="mb-6 mt-2">
                 <h3 className="text-sm font-bold text-foreground mb-1">Tendência Dominante</h3>
                 <p className="text-xs text-muted-foreground">
-                  Seu perfil atual é de absorção baseada em <strong>{topType}</strong>. 
-                  {typeData[0]?.type === "teoria" && " Cuidado com a passividade, tente resolver mais questões!"}
+                  Seu perfil atual é de absorção baseada em <strong>{topType}</strong>.
+                  {typeData[0]?.type === "teoria" &&
+                    " Cuidado com a passividade, tente resolver mais questões!"}
                   {typeData[0]?.type === "questoes" && " Excelente perfil ativo!"}
                 </p>
               </div>
@@ -302,14 +347,19 @@ function DesempenhoRoute() {
                     <div key={i}>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-bold flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }}></div>
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: t.color }}
+                          ></div>
                           {t.label}
                         </span>
-                        <span className="text-muted-foreground">{percent}% ({t.value}m)</span>
+                        <span className="text-muted-foreground">
+                          {percent}% ({t.value}m)
+                        </span>
                       </div>
                       <div className="w-full bg-background rounded-full h-2 overflow-hidden">
-                        <div 
-                          className="h-full rounded-full" 
+                        <div
+                          className="h-full rounded-full"
                           style={{ width: `${percent}%`, backgroundColor: t.color }}
                         ></div>
                       </div>
@@ -317,11 +367,9 @@ function DesempenhoRoute() {
                   );
                 })}
               </div>
-              
             </CardContent>
           </Card>
         </UpgradePaywall>
-
       </div>
     </div>
   );

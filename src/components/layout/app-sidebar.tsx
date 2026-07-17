@@ -11,19 +11,19 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { 
-  BrainCircuit, 
-  Calendar, 
-  BookOpen, 
-  RefreshCcw, 
-  Timer, 
-  LineChart, 
+import {
+  BrainCircuit,
+  Calendar,
+  BookOpen,
+  RefreshCcw,
+  Timer,
+  LineChart,
   Settings,
-  LogOut
+  LogOut,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { UserProfile } from "@/types/models";
 import { Badge } from "@/components/ui/badge";
+import { useSyncStorage } from "@/hooks/useSyncStorage";
 
 // Itens do menu principal
 const mainNavItems = [
@@ -38,16 +38,7 @@ const mainNavItems = [
 export function AppSidebar() {
   const routerState = useRouterState();
   const pathname = routerState.location.pathname;
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    try {
-      const p = localStorage.getItem("@sinapse:userProfile");
-      if (p) setProfile(JSON.parse(p));
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const [profile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
 
   return (
     <Sidebar variant="inset">
@@ -59,8 +50,13 @@ export function AppSidebar() {
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
             Sinapse
           </span>
-          {profile?.subscriptionTier === 'pro' && (
-            <Badge variant="outline" className="ml-1 border-primary/50 text-primary bg-primary/10 text-[10px] px-1.5 py-0">PRO</Badge>
+          {profile?.subscriptionTier === "pro" && (
+            <Badge
+              variant="outline"
+              className="ml-1 border-primary/50 text-primary bg-primary/10 text-[10px] px-1.5 py-0"
+            >
+              PRO
+            </Badge>
           )}
         </div>
       </SidebarHeader>
@@ -72,9 +68,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => {
                 // Checa se está ativo (tratamento simples para exact vs startsWith)
-                const isActive = item.exact 
-                  ? pathname === item.url 
-                  : pathname.startsWith(item.url);
+                const isActive = item.exact ? pathname === item.url : pathname.startsWith(item.url);
 
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -95,7 +89,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/app/configuracoes')}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/app/configuracoes")}>
                   <Link to="/app/configuracoes">
                     <Settings />
                     <span>Configurações</span>

@@ -9,24 +9,26 @@ interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPr
   indicatorColor?: string;
 }
 
-const Progress = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  ProgressProps
->(({ className, value, indicatorColor, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn("relative h-2 w-full overflow-hidden rounded-full bg-primary/20", className)}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className={cn("h-full w-full flex-1 transition-all", !indicatorColor?.startsWith('#') ? indicatorColor || "bg-primary" : "")}
-      style={{ 
-        transform: `translateX(-${100 - (value || 0)}%)`,
-        backgroundColor: indicatorColor?.startsWith('#') ? indicatorColor : undefined
-      }}
-    />
-  </ProgressPrimitive.Root>
-));
+const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root>, ProgressProps>(
+  ({ className, value, indicatorColor, ...props }, ref) => (
+    <ProgressPrimitive.Root
+      ref={ref}
+      className={cn("relative h-2 w-full overflow-hidden rounded-full bg-primary/20", className)}
+      {...props}
+    >
+      <ProgressPrimitive.Indicator
+        className={cn(
+          "h-full w-full flex-1 transition-all",
+          !indicatorColor?.startsWith("#") ? indicatorColor || "bg-primary" : "",
+        )}
+        style={{
+          transform: `translateX(-${100 - (value || 0)}%)`,
+          backgroundColor: indicatorColor?.startsWith("#") ? indicatorColor : undefined,
+        }}
+      />
+    </ProgressPrimitive.Root>
+  ),
+);
 Progress.displayName = ProgressPrimitive.Root.displayName;
 
 export { Progress };

@@ -9,13 +9,12 @@ interface UpgradePaywallProps {
   description?: string;
 }
 
-export function UpgradePaywall({ 
-  children, 
+export function UpgradePaywall({
+  children,
   isPro,
   title = "Recurso Premium",
-  description = "Faça o upgrade para o plano Pro para desbloquear essa ferramenta poderosa."
+  description = "Faça o upgrade para o plano Pro para desbloquear essa ferramenta poderosa.",
 }: UpgradePaywallProps) {
-  
   if (isPro) {
     return <>{children}</>;
   }
@@ -26,7 +25,7 @@ export function UpgradePaywall({
       <div className="opacity-30 blur-[6px] pointer-events-none select-none grayscale transition-all duration-700 group-hover:blur-[8px]">
         {children}
       </div>
-      
+
       {/* Overlay Escuro para Legibilidade */}
       <div className="absolute inset-0 bg-background/50 pointer-events-none"></div>
 
@@ -36,9 +35,7 @@ export function UpgradePaywall({
           <Lock size={24} />
         </div>
         <h3 className="text-xl font-display font-bold text-foreground mb-2">{title}</h3>
-        <p className="text-sm text-muted-foreground max-w-sm mb-6">
-          {description}
-        </p>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6">{description}</p>
         <Link to="/app/upgrade">
           <Button className="bg-gradient-to-r from-primary to-green-500 text-primary-foreground font-bold hover:shadow-glow transition-all hover:scale-105">
             Desbloquear Agora

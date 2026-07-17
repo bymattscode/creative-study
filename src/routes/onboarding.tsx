@@ -6,7 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { BrainCircuit, CheckCircle2, ChevronRight, ChevronLeft, Plus, X, Loader2 } from "lucide-react";
+import {
+  BrainCircuit,
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Plus,
+  X,
+  Loader2,
+} from "lucide-react";
 import { saveOnboardingData, OnboardingData } from "@/lib/onboarding-store";
 
 export const Route = createFileRoute("/onboarding")({
@@ -58,9 +66,14 @@ function OnboardingWizard() {
           <div className="space-y-4">
             <Progress value={progress} className="h-2" />
             <div className="flex items-center justify-between text-sm text-muted-foreground font-medium">
-              <span>Passo {step} de {totalSteps - 1}</span>
+              <span>
+                Passo {step} de {totalSteps - 1}
+              </span>
               {step > 1 && (
-                <button onClick={prevStep} className="flex items-center hover:text-primary transition-colors">
+                <button
+                  onClick={prevStep}
+                  className="flex items-center hover:text-primary transition-colors"
+                >
                   <ChevronLeft size={16} className="mr-1" /> Voltar
                 </button>
               )}
@@ -72,7 +85,6 @@ function OnboardingWizard() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-xl">
-          
           {/* STEP 1: Básico */}
           {step === 1 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -80,18 +92,22 @@ function OnboardingWizard() {
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-4 shadow-glow">
                   <BrainCircuit size={24} />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-display font-bold">Como podemos te chamar?</h1>
-                <p className="text-muted-foreground">O primeiro passo para personalizarmos seu plano.</p>
+                <h1 className="text-3xl md:text-4xl font-display font-bold">
+                  Como podemos te chamar?
+                </h1>
+                <p className="text-muted-foreground">
+                  O primeiro passo para personalizarmos seu plano.
+                </p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">Seu Nome</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="Ex: João Silva" 
+                  <Input
+                    id="name"
+                    placeholder="Ex: João Silva"
                     value={data.name}
-                    onChange={(e) => setData({...data, name: e.target.value})}
+                    onChange={(e) => setData({ ...data, name: e.target.value })}
                     className="h-12 text-lg"
                   />
                 </div>
@@ -99,23 +115,27 @@ function OnboardingWizard() {
                 <div className="space-y-3">
                   <Label>Qual o seu foco atual?</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {["ENEM / Vestibular", "Concurso Público", "Universidade", "Estudo Livre"].map(type => (
-                      <Card 
-                        key={type}
-                        className={`p-4 cursor-pointer transition-all border-2 ${data.studentType === type ? 'border-primary bg-primary/10' : 'border-transparent hover:border-border'}`}
-                        onClick={() => setData({...data, studentType: type})}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{type}</span>
-                          {data.studentType === type && <CheckCircle2 size={18} className="text-primary" />}
-                        </div>
-                      </Card>
-                    ))}
+                    {["ENEM / Vestibular", "Concurso Público", "Universidade", "Estudo Livre"].map(
+                      (type) => (
+                        <Card
+                          key={type}
+                          className={`p-4 cursor-pointer transition-all border-2 ${data.studentType === type ? "border-primary bg-primary/10" : "border-transparent hover:border-border"}`}
+                          onClick={() => setData({ ...data, studentType: type })}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{type}</span>
+                            {data.studentType === type && (
+                              <CheckCircle2 size={18} className="text-primary" />
+                            )}
+                          </div>
+                        </Card>
+                      ),
+                    )}
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full h-12 text-lg" 
+                <Button
+                  className="w-full h-12 text-lg"
                   onClick={nextStep}
                   disabled={!data.name || !data.studentType}
                 >
@@ -129,36 +149,42 @@ function OnboardingWizard() {
           {step === 2 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="text-center space-y-2">
-                <h1 className="text-3xl md:text-4xl font-display font-bold">Qual é a sua grande meta?</h1>
-                <p className="text-muted-foreground">Defina o nome da prova ou objetivo principal.</p>
+                <h1 className="text-3xl md:text-4xl font-display font-bold">
+                  Qual é a sua grande meta?
+                </h1>
+                <p className="text-muted-foreground">
+                  Defina o nome da prova ou objetivo principal.
+                </p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="goalName">Nome do Objetivo</Label>
-                  <Input 
-                    id="goalName" 
-                    placeholder="Ex: ENEM 2026, Concurso Banco do Brasil..." 
+                  <Input
+                    id="goalName"
+                    placeholder="Ex: ENEM 2026, Concurso Banco do Brasil..."
                     value={data.goalName}
-                    onChange={(e) => setData({...data, goalName: e.target.value})}
+                    onChange={(e) => setData({ ...data, goalName: e.target.value })}
                     className="h-12 text-lg"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="goalDate">Data da Prova (Opcional)</Label>
-                  <Input 
-                    id="goalDate" 
+                  <Input
+                    id="goalDate"
                     type="date"
                     value={data.goalDate || ""}
-                    onChange={(e) => setData({...data, goalDate: e.target.value})}
+                    onChange={(e) => setData({ ...data, goalDate: e.target.value })}
                     className="h-12 text-lg block w-full"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">A IA usará isso para montar sua grade regressiva.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    A IA usará isso para montar sua grade regressiva.
+                  </p>
                 </div>
 
-                <Button 
-                  className="w-full h-12 text-lg" 
+                <Button
+                  className="w-full h-12 text-lg"
                   onClick={nextStep}
                   disabled={!data.goalName}
                 >
@@ -182,12 +208,12 @@ function OnboardingWizard() {
                     <Label>Horas de Estudo por Dia</Label>
                     <span className="text-3xl font-bold text-primary">{data.hoursPerDay}h</span>
                   </div>
-                  <Slider 
-                    value={[data.hoursPerDay]} 
-                    min={1} 
-                    max={12} 
-                    step={1} 
-                    onValueChange={(v) => setData({...data, hoursPerDay: v[0]})}
+                  <Slider
+                    value={[data.hoursPerDay]}
+                    min={1}
+                    max={12}
+                    step={1}
+                    onValueChange={(v) => setData({ ...data, hoursPerDay: v[0] })}
                     className="w-full"
                   />
                 </div>
@@ -195,11 +221,11 @@ function OnboardingWizard() {
                 <div className="space-y-3">
                   <Label>Turno Preferido</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    {["manhã", "tarde", "noite", "madrugada"].map(turno => (
-                      <Card 
+                    {["manhã", "tarde", "noite", "madrugada"].map((turno) => (
+                      <Card
                         key={turno}
-                        className={`p-4 cursor-pointer transition-all border-2 text-center capitalize ${data.preferredTime === turno ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-transparent hover:border-border text-muted-foreground'}`}
-                        onClick={() => setData({...data, preferredTime: turno as any})}
+                        className={`p-4 cursor-pointer transition-all border-2 text-center capitalize ${data.preferredTime === turno ? "border-primary bg-primary/10 text-primary font-bold" : "border-transparent hover:border-border text-muted-foreground"}`}
+                        onClick={() => setData({ ...data, preferredTime: turno as any })}
                       >
                         {turno}
                       </Card>
@@ -207,8 +233,8 @@ function OnboardingWizard() {
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full h-12 text-lg mt-4" 
+                <Button
+                  className="w-full h-12 text-lg mt-4"
                   onClick={nextStep}
                   disabled={!data.preferredTime}
                 >
@@ -223,18 +249,23 @@ function OnboardingWizard() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="text-center space-y-2">
                 <h1 className="text-3xl md:text-4xl font-display font-bold">Matérias Principais</h1>
-                <p className="text-muted-foreground">Adicione os conteúdos que você precisa dominar.</p>
+                <p className="text-muted-foreground">
+                  Adicione os conteúdos que você precisa dominar.
+                </p>
               </div>
 
               <div className="space-y-4">
                 {data.subjects.map((sub, idx) => (
-                  <Card key={idx} className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center relative border-border/50 bg-surface-elevated/50">
+                  <Card
+                    key={idx}
+                    className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center relative border-border/50 bg-surface-elevated/50"
+                  >
                     {data.subjects.length > 1 && (
-                      <button 
+                      <button
                         onClick={() => {
                           const newSubs = [...data.subjects];
                           newSubs.splice(idx, 1);
-                          setData({...data, subjects: newSubs});
+                          setData({ ...data, subjects: newSubs });
                         }}
                         className="absolute -right-2 -top-2 bg-destructive text-destructive-foreground rounded-full p-1"
                       >
@@ -242,27 +273,27 @@ function OnboardingWizard() {
                       </button>
                     )}
                     <div className="flex-1 w-full">
-                      <Input 
-                        placeholder="Nome da matéria (ex: Matemática)" 
+                      <Input
+                        placeholder="Nome da matéria (ex: Matemática)"
                         value={sub.name}
                         onChange={(e) => {
                           const newSubs = [...data.subjects];
                           newSubs[idx].name = e.target.value;
-                          setData({...data, subjects: newSubs});
+                          setData({ ...data, subjects: newSubs });
                         }}
                         className="border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary bg-transparent"
                       />
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
-                      {["Fácil", "Médio", "Difícil"].map(level => (
+                      {["Fácil", "Médio", "Difícil"].map((level) => (
                         <button
                           key={level}
                           onClick={() => {
                             const newSubs = [...data.subjects];
                             newSubs[idx].difficulty = level as any;
-                            setData({...data, subjects: newSubs});
+                            setData({ ...data, subjects: newSubs });
                           }}
-                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex-1 md:flex-none ${sub.difficulty === level ? 'bg-primary/20 border-primary text-primary' : 'border-border/50 text-muted-foreground hover:bg-surface'}`}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex-1 md:flex-none ${sub.difficulty === level ? "bg-primary/20 border-primary text-primary" : "border-border/50 text-muted-foreground hover:bg-surface"}`}
                         >
                           {level}
                         </button>
@@ -271,18 +302,23 @@ function OnboardingWizard() {
                   </Card>
                 ))}
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full border-dashed py-6 text-muted-foreground hover:text-foreground"
-                  onClick={() => setData({...data, subjects: [...data.subjects, { name: "", difficulty: "Médio" }]})}
+                  onClick={() =>
+                    setData({
+                      ...data,
+                      subjects: [...data.subjects, { name: "", difficulty: "Médio" }],
+                    })
+                  }
                 >
                   <Plus size={16} className="mr-2" /> Adicionar Matéria
                 </Button>
 
-                <Button 
-                  className="w-full h-12 text-lg mt-6" 
+                <Button
+                  className="w-full h-12 text-lg mt-6"
                   onClick={nextStep}
-                  disabled={data.subjects.some(s => !s.name.trim())}
+                  disabled={data.subjects.some((s) => !s.name.trim())}
                 >
                   Concluir Perfil <CheckCircle2 size={20} className="ml-2" />
                 </Button>
@@ -301,12 +337,13 @@ function OnboardingWizard() {
               </div>
               <div className="text-center space-y-2">
                 <h1 className="text-2xl font-display font-bold">Sincronizando Sinapses...</h1>
-                <p className="text-muted-foreground">A Inteligência Artificial está montando seu planejamento inicial.</p>
+                <p className="text-muted-foreground">
+                  A Inteligência Artificial está montando seu planejamento inicial.
+                </p>
               </div>
               <Loader2 className="animate-spin text-primary mt-8" size={32} />
             </div>
           )}
-
         </div>
       </main>
     </div>

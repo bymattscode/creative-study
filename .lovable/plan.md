@@ -16,42 +16,50 @@ Para não virar mais um "Mentoris azul-neon", vou construir uma identidade disti
 Cada fase é um entregável funcional. Fazemos uma, você valida, seguimos.
 
 **Fase 1 — Landing + Design System** ← começamos aqui
+
 - Design tokens completos em `src/styles.css` (cores, tipografia, sombras, gradientes)
 - Landing pública em `/`: hero, seções de features (Dashboard, Revisões IA, Planner, Métricas, Flashcards, Simulados, Calendário), prova social, CTA final, footer
 - SEO: head metadata, sitemap.xml, robots.txt, llms.txt
 - Rotas separadas para `/features`, `/precos`, `/sobre` (SEO-friendly)
 
 **Fase 2 — Auth + Shell do app**
+
 - Lovable Cloud ligado (email/senha + Google)
 - Layout autenticado `_authenticated` com sidebar, header, tema
 - Onboarding: usuário cadastra matérias e prova-alvo
 
 **Fase 3 — Planner + Tópicos**
+
 - CRUD de matérias e tópicos
 - Priorização por peso do edital
 - Views: por tópico, por matéria
 
 **Fase 4 — Revisões espaçadas (o coração)**
+
 - Algoritmo SM-2 (melhor que o Ebbinghaus puro do Mentoris)
 - Dashboard "Revisões do dia"
 - Registro de sessão com autoavaliação (0–5)
 
 **Fase 5 — IA (Lovable AI Gateway, Gemini 3 Flash)**
+
 - Sugestões diárias do que estudar (baseado em desempenho + prazo)
 - Gerador de flashcards a partir de texto colado
 - Gerador de questões estilo prova
 
 **Fase 6 — Métricas + Metas**
+
 - Gráfico semanal (horas, questões, desempenho)
 - Metas configuráveis
 - Heatmap de constância (estilo GitHub)
 
 **Fase 7 — Calendário + Pomodoro**
+
 - Calendário unificado (revisões + provas + tarefas)
 - Timer Pomodoro integrado com registro automático de sessão
 - (Opcional) sync Google Calendar
 
 **Fase 8 — Simulados**
+
 - Modo prova cronometrado
 - Relatório pós-prova com pontos fracos
 
@@ -60,7 +68,7 @@ Cada fase é um entregável funcional. Fazemos uma, você valida, seguimos.
 - **SM-2 completo** em vez de Ebbinghaus fixo (adapta ao usuário de verdade)
 - **Pomodoro integrado ao registro** (não é feature separada solta)
 - **Heatmap de constância** estilo GitHub (mais legível que o calendário deles)
-- **IA de sugestão contextual** que explica *por quê* sugeriu aquele tópico
+- **IA de sugestão contextual** que explica _por quê_ sugeriu aquele tópico
 - **Identidade visual editorial** (não mais um dashboard azul-neon)
 
 ## Detalhes técnicos (para referência)
@@ -74,6 +82,7 @@ Cada fase é um entregável funcional. Fazemos uma, você valida, seguimos.
 ---
 
 **Se aprovar, começo pela Fase 1 agora.** Me diga também:
+
 1. Aceita o nome **Sinapse** ou quer outro?
-2. Alguma feature do Mentoris que você quer *remover* do roadmap?
-3. Alguma que você quer *adicionar* que não listei?
+2. Alguma feature do Mentoris que você quer _remover_ do roadmap?
+3. Alguma que você quer _adicionar_ que não listei?

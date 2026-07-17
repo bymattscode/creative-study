@@ -1,23 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { UserProfile, Goal, Subject, StudySession, ReviewItem } from "@/types/models";
+import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { generateDailyInsight } from "@/lib/ai-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  BrainCircuit, 
-  Target, 
-  Clock, 
-  Play, 
-  CalendarDays, 
-  BarChart3, 
-  Repeat, 
+import {
+  BrainCircuit,
+  Target,
+  Clock,
+  Play,
+  CalendarDays,
+  BarChart3,
+  Repeat,
   Flame,
   CheckCircle2,
   Sparkles,
   ArrowRight,
-  BookOpen
+  BookOpen,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({
@@ -25,36 +26,16 @@ export const Route = createFileRoute("/app/")({
 });
 
 function DashboardRoute() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [goal, setGoal] = useState<Goal | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [history, setHistory] = useState<StudySession[]>([]);
-  const [reviews, setReviews] = useState<ReviewItem[]>([]);
-  const [insight, setInsight] = useState<string>("");
+  const [profile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
+  const [goal] = useSyncStorage<Goal | null>("@sinapse:currentGoal", null);
+  const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
+  const [history] = useSyncStorage<StudySession[]>("@sinapse:studyHistory", []);
+  const [reviews] = useSyncStorage<ReviewItem[]>("@sinapse:reviewItems", []);
 
-  useEffect(() => {
-    try {
-      const p = localStorage.getItem("@sinapse:userProfile");
-      const g = localStorage.getItem("@sinapse:currentGoal");
-      const s = localStorage.getItem("@sinapse:subjects");
-      const h = localStorage.getItem("@sinapse:studyHistory");
-      const r = localStorage.getItem("@sinapse:reviewItems");
-      
-      let pObj, gObj, sObj, hObj, rObj;
-      
-      if (p) { pObj = JSON.parse(p); setProfile(pObj); }
-      if (g) { gObj = JSON.parse(g); setGoal(gObj); }
-      if (s) { sObj = JSON.parse(s); setSubjects(sObj); }
-      if (h) { hObj = JSON.parse(h); setHistory(hObj); }
-      if (r) { rObj = JSON.parse(r); setReviews(rObj); }
-      
-      // Gerando Insight
-      setInsight(generateDailyInsight(hObj || [], rObj || [], sObj || []));
-      
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const insight = useMemo(
+    () => generateDailyInsight(history, reviews, subjects),
+    [history, reviews, subjects],
+  );
 
   const getFirstName = (fullName: string) => fullName.split(" ")[0] || "Estudante";
 
@@ -77,20 +58,19 @@ function DashboardRoute() {
   const totalMinutes = history.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
   const netHours = Math.floor(totalMinutes / 60);
   const netMins = totalMinutes % 60;
-  
+
   // Calculando Meta Semanal Simples (Ex: Meta de 20h = 1200min)
-  const weeklyGoalMins = 20 * 60; 
+  const weeklyGoalMins = 20 * 60;
   const progressPercent = Math.min(100, (totalMinutes / weeklyGoalMins) * 100);
 
   // Calculando Ofensiva (Dias únicos no histórico)
-  const uniqueDates = new Set(history.map(s => new Date(s.createdAt).toDateString()));
+  const uniqueDates = new Set(history.map((s) => new Date(s.createdAt).toDateString()));
   const offensiveDays = uniqueDates.size;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
-      
       {/* IA Insight Card (Copiloto) */}
-      {profile?.subscriptionTier === 'pro' && insight && (
+      {profile?.subscriptionTier === "pro" && insight && (
         <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20 shadow-glow mb-6">
           <CardContent className="p-4 flex items-start sm:items-center gap-4">
             <div className="h-10 w-10 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-primary animate-pulse">
@@ -105,20 +85,31 @@ function DashboardRoute() {
       )}
 
       {/* Paywall Soft - IA Insight Card (Copiloto) */}
-      {profile?.subscriptionTier !== 'pro' && (
-        <Card className="bg-surface-elevated border-border mb-6 group cursor-pointer hover:border-primary/50 transition-colors" onClick={() => window.location.href = '/app/upgrade'}>
+      {profile?.subscriptionTier !== "pro" && (
+        <Card
+          className="bg-surface-elevated border-border mb-6 group cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => (window.location.href = "/app/upgrade")}
+        >
           <CardContent className="p-4 flex items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
                 <Sparkles size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors mb-0.5">Copiloto Inteligente</p>
-                <p className="text-sm text-muted-foreground/60">Análise diária de comportamento bloqueada no plano gratuito.</p>
+                <p className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors mb-0.5">
+                  Copiloto Inteligente
+                </p>
+                <p className="text-sm text-muted-foreground/60">
+                  Análise diária de comportamento bloqueada no plano gratuito.
+                </p>
               </div>
             </div>
             <Link to="/app/upgrade">
-              <Button variant="outline" size="sm" className="hidden sm:flex text-primary border-primary/30">
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden sm:flex text-primary border-primary/30"
+              >
                 Desbloquear IA
               </Button>
             </Link>
@@ -133,23 +124,35 @@ function DashboardRoute() {
             <Sparkles size={14} className="text-primary" /> Seu Centro de Comando
           </p>
           <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground">
-            {getGreeting()}, <span className="text-primary">{profile ? getFirstName(profile.name) : "Mestre"}!</span>
+            {getGreeting()},{" "}
+            <span className="text-primary">{profile ? getFirstName(profile.name) : "Mestre"}!</span>
           </h1>
         </div>
-        
+
         {/* Constância Rápida Header */}
         <div className="flex items-center gap-3 bg-surface-elevated px-5 py-2.5 rounded-2xl border border-border shadow-sm">
           <div className="flex -space-x-1">
             {/* Mock de Constância Visual */}
             {["S", "T", "Q", "Q", "S"].map((d, i) => (
-              <div key={i} className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${i < Math.min(offensiveDays, 5) ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground'}`}>
+              <div
+                key={i}
+                className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${i < Math.min(offensiveDays, 5) ? "bg-primary text-primary-foreground" : "bg-surface text-muted-foreground"}`}
+              >
                 {d}
               </div>
             ))}
           </div>
           <div className="flex flex-col ml-2">
-            <span className="text-sm font-bold flex items-center gap-1"><Flame size={14} className={offensiveDays > 0 ? "text-orange-500" : "text-muted-foreground"} /> {offensiveDays} dias</span>
-            <span className="text-[10px] uppercase text-muted-foreground tracking-widest">Ofensiva</span>
+            <span className="text-sm font-bold flex items-center gap-1">
+              <Flame
+                size={14}
+                className={offensiveDays > 0 ? "text-orange-500" : "text-muted-foreground"}
+              />{" "}
+              {offensiveDays} dias
+            </span>
+            <span className="text-[10px] uppercase text-muted-foreground tracking-widest">
+              Ofensiva
+            </span>
           </div>
         </div>
       </div>
@@ -163,16 +166,20 @@ function DashboardRoute() {
               <BrainCircuit size={16} /> Insight da Inteligência Artificial
             </div>
             <h2 className="text-xl md:text-2xl font-bold leading-tight">
-              Sua retenção em Exatas está caindo. <br className="hidden md:block"/>
+              Sua retenção em Exatas está caindo. <br className="hidden md:block" />
               Vamos fazer um bloco de 25 min agora?
             </h2>
             <p className="text-muted-foreground">
-              A IA analisou que você pulou as duas últimas revisões de Matemática. 
-              Resolver 5 questões agora vai recuperar sua curva de esquecimento.
+              A IA analisou que você pulou as duas últimas revisões de Matemática. Resolver 5
+              questões agora vai recuperar sua curva de esquecimento.
             </p>
           </div>
-          
-          <Button size="lg" className="w-full md:w-auto shrink-0 shadow-glow text-base h-14 px-8" asChild>
+
+          <Button
+            size="lg"
+            className="w-full md:w-auto shrink-0 shadow-glow text-base h-14 px-8"
+            asChild
+          >
             <Link to="/app/estudo">
               <Play className="mr-2 h-5 w-5 fill-current" /> Iniciar Foco Agora
             </Link>
@@ -182,28 +189,44 @@ function DashboardRoute() {
 
       {/* 3. Grid Principal de Ações */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border" asChild>
+        <Button
+          variant="outline"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
+          asChild
+        >
           <Link to="/app/estudo">
             <Play size={24} className="text-primary" />
             <span>Estudar</span>
           </Link>
         </Button>
-        
-        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-secondary transition-all border-border" asChild>
+
+        <Button
+          variant="outline"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-secondary transition-all border-border"
+          asChild
+        >
           <Link to="/app/revisoes">
             <Repeat size={24} className="text-secondary" />
             <span>Revisar</span>
           </Link>
         </Button>
 
-        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border" asChild>
+        <Button
+          variant="outline"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border"
+          asChild
+        >
           <Link to="/app/plano">
             <CalendarDays size={24} className="text-muted-foreground" />
             <span>Meu Plano</span>
           </Link>
         </Button>
 
-        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border" asChild>
+        <Button
+          variant="outline"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border"
+          asChild
+        >
           <Link to="/app/desempenho">
             <BarChart3 size={24} className="text-muted-foreground" />
             <span>Desempenho</span>
@@ -212,7 +235,6 @@ function DashboardRoute() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
         {/* Coluna Esquerda: Meta e Métricas */}
         <div className="space-y-6 md:col-span-1">
           {/* Card: Objetivo */}
@@ -227,11 +249,13 @@ function DashboardRoute() {
               <div className="text-2xl font-bold font-display leading-tight mb-4">
                 {goal ? goal.title : "Sem meta definida"}
               </div>
-              
+
               {daysRemaining !== null && (
                 <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border">
                   <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground uppercase">Contagem Regressiva</span>
+                    <span className="text-xs text-muted-foreground uppercase">
+                      Contagem Regressiva
+                    </span>
                     <span className="font-bold text-lg">{daysRemaining} dias</span>
                   </div>
                   <Clock className="text-muted-foreground" size={24} />
@@ -243,16 +267,22 @@ function DashboardRoute() {
           {/* Card: Horas Líquidas */}
           <Card className="bg-surface-elevated border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Horas Líquidas Totais</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                Horas Líquidas Totais
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-display font-bold">
-                  {netHours}<span className="text-xl text-muted-foreground">h</span> {netMins}<span className="text-xl text-muted-foreground">m</span>
+                  {netHours}
+                  <span className="text-xl text-muted-foreground">h</span> {netMins}
+                  <span className="text-xl text-muted-foreground">m</span>
                 </span>
               </div>
               <Progress value={progressPercent} className="h-2 mb-2" />
-              <p className="text-xs text-muted-foreground">{progressPercent.toFixed(0)}% da meta de 20h semanais</p>
+              <p className="text-xs text-muted-foreground">
+                {progressPercent.toFixed(0)}% da meta de 20h semanais
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -263,19 +293,24 @@ function DashboardRoute() {
             <CardHeader className="border-b border-border/50 pb-4">
               <CardTitle className="flex items-center justify-between font-display text-lg">
                 Missões de Hoje
-                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-bold">3 pendentes</span>
+                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-bold">
+                  3 pendentes
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              
               {/* Item de Estudo */}
               <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer">
                 <div className="mt-1 h-5 w-5 rounded-full border-2 border-muted-foreground group-hover:border-primary flex-shrink-0"></div>
                 <div className="flex flex-col flex-1">
                   <span className="font-bold text-sm">Direito Constitucional</span>
-                  <span className="text-xs text-muted-foreground">Teoria: Direitos Fundamentais</span>
+                  <span className="text-xs text-muted-foreground">
+                    Teoria: Direitos Fundamentais
+                  </span>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">60 min</span>
+                    <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">
+                      60 min
+                    </span>
                   </div>
                 </div>
               </div>
@@ -283,19 +318,32 @@ function DashboardRoute() {
               {/* Item de Revisão */}
               <div className="flex items-start gap-3 p-3 rounded-lg bg-[#2a0863]/20 border border-secondary/30 hover:border-secondary transition-colors group cursor-pointer">
                 <div className="mt-1 h-5 w-5 rounded-full border-2 border-secondary group-hover:border-secondary flex-shrink-0 flex items-center justify-center">
-                  <CheckCircle2 size={12} className="text-secondary opacity-0 group-hover:opacity-100" />
+                  <CheckCircle2
+                    size={12}
+                    className="text-secondary opacity-0 group-hover:opacity-100"
+                  />
                 </div>
                 <div className="flex flex-col flex-1">
-                  <span className="font-bold text-sm text-secondary-foreground">Revisão: 24 Flashcards</span>
+                  <span className="font-bold text-sm text-secondary-foreground">
+                    Revisão: 24 Flashcards
+                  </span>
                   <span className="text-xs text-muted-foreground">Matemática, Português</span>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] uppercase font-bold bg-secondary/20 px-2 py-0.5 rounded text-secondary-foreground">~15 min</span>
+                    <span className="text-[10px] uppercase font-bold bg-secondary/20 px-2 py-0.5 rounded text-secondary-foreground">
+                      ~15 min
+                    </span>
                   </div>
                 </div>
               </div>
-              
-              <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground text-sm" asChild>
-                <Link to="/app/plano">Ver cronograma completo <ArrowRight size={14} className="ml-1" /></Link>
+
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground hover:text-foreground text-sm"
+                asChild
+              >
+                <Link to="/app/plano">
+                  Ver cronograma completo <ArrowRight size={14} className="ml-1" />
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -309,9 +357,8 @@ function DashboardRoute() {
               <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 space-y-5">
-              
               {subjects.length > 0 ? (
-                subjects.slice(0, 4).map(sub => (
+                subjects.slice(0, 4).map((sub) => (
                   <div key={sub.id} className="space-y-2">
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-medium truncate pr-2">{sub.name}</span>
@@ -319,9 +366,9 @@ function DashboardRoute() {
                         {Math.floor(Math.random() * 40) + 10}%
                       </span>
                     </div>
-                    <Progress 
-                      value={Math.floor(Math.random() * 40) + 10} 
-                      className="h-1.5" 
+                    <Progress
+                      value={Math.floor(Math.random() * 40) + 10}
+                      className="h-1.5"
                       indicatorColor={sub.color || "bg-primary"}
                     />
                   </div>
@@ -338,11 +385,9 @@ function DashboardRoute() {
                   </Button>
                 </div>
               )}
-
             </CardContent>
           </Card>
         </div>
-
       </div>
     </div>
   );

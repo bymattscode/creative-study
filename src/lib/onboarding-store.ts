@@ -61,6 +61,24 @@ export const saveOnboardingData = (data: OnboardingData) => {
     localStorage.setItem("@sinapse:subjects", JSON.stringify(subjects));
     localStorage.setItem("@sinapse:onboardingCompleted", "true");
 
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("on-synced-storage-update", {
+          detail: { key: "@sinapse:userProfile", newValue: profile },
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("on-synced-storage-update", {
+          detail: { key: "@sinapse:currentGoal", newValue: goal },
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("on-synced-storage-update", {
+          detail: { key: "@sinapse:subjects", newValue: subjects },
+        }),
+      );
+    }
+
     return true;
   } catch (error) {
     console.error("Failed to save onboarding data", error);

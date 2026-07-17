@@ -31,9 +31,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Erro Inesperado
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Erro Inesperado</h1>
         <div className="mt-6">
           <button
             onClick={() => {

@@ -17,7 +17,7 @@ function AppLayout() {
             <SidebarTrigger className="-ml-2" />
             <span className="font-display text-xl font-bold text-foreground">Sinapse</span>
           </header>
-          
+
           {/* Conteúdo Principal (Rotas filhas) */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
             <Outlet />
