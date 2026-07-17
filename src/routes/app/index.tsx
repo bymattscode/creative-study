@@ -1,9 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { UserProfile, Goal } from "@/types/models";
+import { UserProfile, Goal, Subject } from "@/types/models";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BrainCircuit, Target, Clock, Zap, ArrowRight, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { 
+  BrainCircuit, 
+  Target, 
+  Clock, 
+  Play, 
+  CalendarDays, 
+  BarChart3, 
+  Repeat, 
+  Flame,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight
+} from "lucide-react";
 
 export const Route = createFileRoute("/app/")({
   component: DashboardRoute,
@@ -12,13 +25,17 @@ export const Route = createFileRoute("/app/")({
 function DashboardRoute() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
     try {
       const p = localStorage.getItem("@sinapse:userProfile");
       const g = localStorage.getItem("@sinapse:currentGoal");
+      const s = localStorage.getItem("@sinapse:subjects");
+      
       if (p) setProfile(JSON.parse(p));
       if (g) setGoal(JSON.parse(g));
+      if (s) setSubjects(JSON.parse(s));
     } catch (e) {
       console.error(e);
     }
@@ -26,118 +43,232 @@ function DashboardRoute() {
 
   const getFirstName = (fullName: string) => fullName.split(" ")[0] || "Estudante";
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
+  const getDaysRemaining = (targetDate?: Date) => {
+    if (!targetDate) return null;
+    const diff = new Date(targetDate).getTime() - new Date().getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
+  };
+
+  const daysRemaining = goal?.targetDate ? getDaysRemaining(goal.targetDate) : null;
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header Saudação */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
+      
+      {/* 1. Saudação Contextual e Atalhos Rápidos */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-            {profile ? `Olá, ${getFirstName(profile.name)}!` : "Bem-vindo de volta!"}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Pronto para mais um dia produtivo?
+          <p className="text-muted-foreground font-medium flex items-center gap-2 uppercase tracking-widest text-xs mb-1">
+            <Sparkles size={14} className="text-primary" /> Seu Centro de Comando
           </p>
+          <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground">
+            {getGreeting()}, <span className="text-primary">{profile ? getFirstName(profile.name) : "Mestre"}!</span>
+          </h1>
         </div>
-        <div className="flex items-center gap-2 bg-surface px-4 py-2 rounded-full border border-border shadow-sm">
-          <Flame size={20} className="text-orange-500" />
-          <span className="font-bold">Ofensiva: 3 dias</span>
-        </div>
-      </div>
-
-      {/* Cards de Métricas Rápidas */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-surface-elevated border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Meta Atual</CardTitle>
-            <Target className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-display">
-              {goal ? goal.title : "Sem meta definida"}
-            </div>
-            {goal?.targetDate && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Data: {new Date(goal.targetDate).toLocaleDateString('pt-BR')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-surface-elevated border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Horas na Semana</CardTitle>
-            <Clock className="h-4 w-4 text-secondary-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-display">12h 30m</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              +2h em relação à semana passada
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-surface-elevated border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Foco Médio</CardTitle>
-            <Zap className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-display">85%</div>
-            <p className="text-xs text-muted-foreground mt-1">Nível de concentração alto</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Insight da IA e Atalho */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="bg-primary/5 border-primary/20 shadow-glow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <BrainCircuit size={100} />
+        
+        {/* Constância Rápida Header */}
+        <div className="flex items-center gap-3 bg-surface-elevated px-5 py-2.5 rounded-2xl border border-border shadow-sm">
+          <div className="flex -space-x-1">
+            {/* Mock de Constância de 5 dias */}
+            {["S", "T", "Q", "Q", "S"].map((d, i) => (
+              <div key={i} className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${i < 3 ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground'}`}>
+                {d}
+              </div>
+            ))}
           </div>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <BrainCircuit size={20} /> Sinapse IA
-            </CardTitle>
-            <CardDescription className="text-foreground/80 text-base mt-2">
-              Notei que você tem evitado revisões de Exatas. 
-              Que tal fazermos uma sessão curta de 25 min agora para quebrar o gelo?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="mt-2 w-full md:w-auto" asChild>
-              <Link to="/app/estudo">
-                Começar Sessão Recomendada <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+          <div className="flex flex-col ml-2">
+            <span className="text-sm font-bold flex items-center gap-1"><Flame size={14} className="text-orange-500" /> 3 dias</span>
+            <span className="text-[10px] uppercase text-muted-foreground tracking-widest">Ofensiva</span>
+          </div>
+        </div>
+      </div>
 
-        <Card className="bg-surface-elevated border-border">
-          <CardHeader>
-            <CardTitle>Planejamento de Hoje</CardTitle>
-            <CardDescription>O que você tem para hoje</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex flex-col">
-                <span className="font-bold">Direito Constitucional</span>
-                <span className="text-sm text-muted-foreground">Tópico: Direitos Fundamentais</span>
-              </div>
-              <span className="font-medium bg-surface px-2 py-1 rounded text-sm text-muted-foreground">60 min</span>
+      {/* 2. Insight IA (A Próxima Melhor Ação) */}
+      <Card className="bg-[#17122b] border-primary/30 shadow-[0_0_30px_rgba(168,255,0,0.05)] overflow-hidden relative group">
+        <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/10 to-transparent pointer-events-none"></div>
+        <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 relative z-10 w-full md:w-2/3">
+            <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs mb-2">
+              <BrainCircuit size={16} /> Insight da Inteligência Artificial
             </div>
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex flex-col">
-                <span className="font-bold">Língua Portuguesa</span>
-                <span className="text-sm text-muted-foreground">Tópico: Crase</span>
+            <h2 className="text-xl md:text-2xl font-bold leading-tight">
+              Sua retenção em Exatas está caindo. <br className="hidden md:block"/>
+              Vamos fazer um bloco de 25 min agora?
+            </h2>
+            <p className="text-muted-foreground">
+              A IA analisou que você pulou as duas últimas revisões de Matemática. 
+              Resolver 5 questões agora vai recuperar sua curva de esquecimento.
+            </p>
+          </div>
+          
+          <Button size="lg" className="w-full md:w-auto shrink-0 shadow-glow text-base h-14 px-8" asChild>
+            <Link to="/app/estudo">
+              <Play className="mr-2 h-5 w-5 fill-current" /> Iniciar Foco Agora
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* 3. Grid Principal de Ações */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border" asChild>
+          <Link to="/app/estudo">
+            <Play size={24} className="text-primary" />
+            <span>Estudar</span>
+          </Link>
+        </Button>
+        
+        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-secondary transition-all border-border" asChild>
+          <Link to="/app/revisoes">
+            <Repeat size={24} className="text-secondary" />
+            <span>Revisar</span>
+          </Link>
+        </Button>
+
+        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border" asChild>
+          <Link to="/app/plano">
+            <CalendarDays size={24} className="text-muted-foreground" />
+            <span>Meu Plano</span>
+          </Link>
+        </Button>
+
+        <Button variant="outline" className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border" asChild>
+          <Link to="/app/desempenho">
+            <BarChart3 size={24} className="text-muted-foreground" />
+            <span>Desempenho</span>
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Coluna Esquerda: Meta e Métricas */}
+        <div className="space-y-6 md:col-span-1">
+          {/* Card: Objetivo */}
+          <Card className="bg-[#21193a] border-border shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
+                <span>Alvo Principal</span>
+                <Target size={16} className="text-primary" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-display leading-tight mb-4">
+                {goal ? goal.title : "Sem meta definida"}
               </div>
-              <span className="font-medium bg-surface px-2 py-1 rounded text-sm text-muted-foreground">30 min</span>
-            </div>
-            
-            <Button variant="outline" className="w-full mt-2" asChild>
-              <Link to="/app/plano">Ver Planejamento Completo</Link>
-            </Button>
-          </CardContent>
-        </Card>
+              
+              {daysRemaining !== null && (
+                <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground uppercase">Contagem Regressiva</span>
+                    <span className="font-bold text-lg">{daysRemaining} dias</span>
+                  </div>
+                  <Clock className="text-muted-foreground" size={24} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card: Horas Líquidas */}
+          <Card className="bg-surface-elevated border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Horas Líquidas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-display font-bold">14<span className="text-xl text-muted-foreground">h</span> 30<span className="text-xl text-muted-foreground">m</span></span>
+              </div>
+              <Progress value={65} className="h-2 mb-2" />
+              <p className="text-xs text-muted-foreground">65% da meta semanal atingida</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Coluna Meio: O que fazer hoje */}
+        <div className="space-y-6 md:col-span-1">
+          <Card className="bg-surface-elevated border-border shadow-sm h-full">
+            <CardHeader className="border-b border-border/50 pb-4">
+              <CardTitle className="flex items-center justify-between">
+                Missões de Hoje
+                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-bold">3 pendentes</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              
+              {/* Item de Estudo */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer">
+                <div className="mt-1 h-5 w-5 rounded-full border-2 border-muted-foreground group-hover:border-primary flex-shrink-0"></div>
+                <div className="flex flex-col flex-1">
+                  <span className="font-bold text-sm">Direito Constitucional</span>
+                  <span className="text-xs text-muted-foreground">Teoria: Direitos Fundamentais</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">60 min</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Item de Revisão */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-[#2a0863]/20 border border-secondary/30 hover:border-secondary transition-colors group cursor-pointer">
+                <div className="mt-1 h-5 w-5 rounded-full border-2 border-secondary group-hover:border-secondary flex-shrink-0 flex items-center justify-center">
+                  <CheckCircle2 size={12} className="text-secondary opacity-0 group-hover:opacity-100" />
+                </div>
+                <div className="flex flex-col flex-1">
+                  <span className="font-bold text-sm text-secondary-foreground">Revisão: 24 Flashcards</span>
+                  <span className="text-xs text-muted-foreground">Matemática, Português</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] uppercase font-bold bg-secondary/20 px-2 py-0.5 rounded text-secondary-foreground">~15 min</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground text-sm" asChild>
+                <Link to="/app/plano">Ver cronograma completo <ArrowRight size={14} className="ml-1" /></Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Coluna Direita: Progresso por Matéria */}
+        <div className="space-y-6 md:col-span-1">
+          <Card className="bg-surface-elevated border-border shadow-sm h-full">
+            <CardHeader className="border-b border-border/50 pb-4">
+              <CardTitle>Progresso no Edital</CardTitle>
+              <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-5">
+              
+              {subjects.length > 0 ? (
+                subjects.slice(0, 4).map(sub => (
+                  <div key={sub.id} className="space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-medium truncate pr-2">{sub.name}</span>
+                      <span className="text-muted-foreground font-bold">
+                        {Math.floor(Math.random() * 40) + 10}%
+                      </span>
+                    </div>
+                    <Progress 
+                      value={Math.floor(Math.random() * 40) + 10} 
+                      className="h-1.5" 
+                      indicatorColor={sub.color || "bg-primary"}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-sm text-muted-foreground">Nenhuma matéria vinculada.</p>
+                </div>
+              )}
+
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </div>
   );
