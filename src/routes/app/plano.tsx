@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { Subject, UserProfile } from "@/types/models";
-import { useSyncStorage } from "@/hooks/useSyncStorage";
+import { useState, useMemo } from "react";
+import { Subject } from "@/types/models";
+import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -14,7 +16,6 @@ import {
   Trash2,
   Edit2,
   MoveRight,
-  Play,
 } from "lucide-react";
 import {
   Accordion,
@@ -68,10 +69,12 @@ type PlanTask = {
   durationMinutes: number;
   type: ActivityType;
   status: TaskStatus;
+  scheduledFor: string;
 };
 
 type PlanDay = {
   dayName: string;
+  date: Date;
   items: PlanTask[];
 };
 
@@ -93,166 +96,341 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
   redacao: "bg-pink-500/10 text-pink-500 border-pink-500/20",
 };
 
+// Utilitários de Data e Serialização
+const getStartOfWeek = (d: Date) => {
+  const date = new Date(d);
+  const day = date.getDay(); // 0 é domingo
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const getEndOfWeek = (start: Date) => {
+  const date = new Date(start);
+  date.setDate(date.getDate() + 6);
+  date.setHours(23, 59, 59, 999);
+  return date;
+};
+
+const getWeekDates = (start: Date) => {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+};
+
+const encodeTitle = (type: ActivityType, topicName: string, isDelayed: boolean = false) =>
+  JSON.stringify({ type, topicName, isDelayed });
+
+const decodeTitle = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      type: (parsed.type || "teoria") as ActivityType,
+      topicName: (parsed.topicName || "") as string,
+      isDelayed: !!parsed.isDelayed,
+    };
+  } catch (e) {
+    return { type: "teoria" as ActivityType, topicName: raw, isDelayed: false };
+  }
+};
+
 function PlanoSemanalRoute() {
-  const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
-  const [profile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
-  const [plan, setPlan] = useSyncStorage<PlanDay[]>(
-    "@sinapse:weeklyPlan",
-    WEEK_DAYS.map((day) => ({ dayName: day, items: [] })),
-  );
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  // Edit State
   const [editingTask, setEditingTask] = useState<{ dayIdx: number; task: PlanTask } | null>(null);
 
-  useEffect(() => {
-    // Upgrade legacy items to new schema if necessary
-    if (plan && plan.length > 0) {
-      const needsUpgrade = plan.some((d) => d.items.some((i) => !i.type || i.status === undefined));
-      if (needsUpgrade) {
-        const upgraded = plan.map((d) => ({
-          ...d,
-          items: d.items.map((i) => ({
-            ...i,
-            type: i.type || "teoria",
-            status: i.status || ((i as any).completed ? "concluido" : "pendente"),
-          })),
-        }));
-        setPlan(upgraded);
-      }
-    }
-  }, [plan, setPlan]);
+  // Queries
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("user_id", user?.id);
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
-  const savePlan = (newPlan: PlanDay[]) => {
-    setPlan(newPlan);
-  };
+  const { data: preferences } = useQuery({
+    queryKey: ["preferences", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("onboarding_preferences")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
-  const generateAIPlan = () => {
-    if (subjects.length === 0) {
-      toast.error("Você precisa cadastrar matérias no seu perfil primeiro!");
-      return;
-    }
+  const { data: weeklyPlan, isLoading: loadingPlan } = useQuery({
+    queryKey: ["weeklyPlan", user?.id],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabase
+        .from("weekly_plans")
+        .select("*")
+        .eq("user_id", user?.id)
+        .lte("start_date", today)
+        .gte("end_date", today)
+        .single();
+      if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows returned
+      return data || null;
+    },
+    enabled: !!user?.id,
+  });
 
-    setIsGenerating(true);
+  const { data: planItems = [], isLoading: loadingItems } = useQuery({
+    queryKey: ["planItems", weeklyPlan?.id],
+    queryFn: async () => {
+      if (!weeklyPlan) return [];
+      const { data, error } = await supabase
+        .from("plan_items")
+        .select("*")
+        .eq("weekly_plan_id", weeklyPlan.id)
+        .order("scheduled_for", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!weeklyPlan,
+  });
 
-    setTimeout(() => {
-      const types: ActivityType[] = ["teoria", "questoes", "revisao", "leitura"];
+  // Mapeamento dos itens para a Interface
+  const plan: PlanDay[] = useMemo(() => {
+    const start = getStartOfWeek(new Date());
+    const dates = getWeekDates(start);
 
-      const newPlan = WEEK_DAYS.map((day) => {
-        const items: PlanTask[] = [];
-        let hours = profile?.preferences?.hoursPerDay || 4;
-        // Dia mais leve no domingo
-        if (day === "Domingo") hours = Math.floor(hours / 2);
-        
-        for (let i = 0; i < hours; i++) {
-          // Distribuição cíclica das matérias para garantir cobertura
-          const subIndex = (WEEK_DAYS.indexOf(day) * hours + i) % subjects.length;
-          const sub = subjects[subIndex];
-          
-          // Padrão intercalado de tipos de estudo
-          const type: ActivityType = i % 4 === 0 ? "revisao" : (i % 2 === 0 ? "questoes" : "teoria");
-
-          items.push({
-            id: Math.random().toString(36).substring(7),
-            subjectId: sub.id,
-            subjectName: sub.name,
-            topicName: `${ACTIVITY_LABELS[type]} - Módulo ${Math.floor(i / 2) + 1}`,
-            durationMinutes: 60,
-            type: type,
-            status: "pendente",
-          });
-        }
-        return { dayName: day, items };
+    return WEEK_DAYS.map((dayName, idx) => {
+      const dayDate = dates[idx];
+      const itemsForDay = planItems.filter((item) => {
+        const itemDate = new Date(item.scheduled_for);
+        return (
+          itemDate.getDate() === dayDate.getDate() &&
+          itemDate.getMonth() === dayDate.getMonth()
+        );
       });
 
-      savePlan(newPlan);
-      setIsGenerating(false);
-      toast.success("Plano otimizado gerado com sucesso!");
-    }, 1500);
-  };
+      const items: PlanTask[] = itemsForDay.map((item) => {
+        const decoded = decodeTitle(item.title);
+        const subject = subjects.find((s) => s.id === item.subject_id);
 
-  const toggleStatus = (dayIndex: number, taskId: string) => {
-    const newPlan = [...plan];
-    const task = newPlan[dayIndex].items.find((t) => t.id === taskId);
-    if (task) {
-      task.status = task.status === "concluido" ? "pendente" : "concluido";
-      savePlan(newPlan);
-    }
-  };
+        let status: TaskStatus = item.completed ? "concluido" : "pendente";
+        if (decoded.isDelayed && !item.completed) status = "atrasado";
 
-  const setTaskStatus = (dayIndex: number, taskId: string, status: TaskStatus) => {
-    const newPlan = [...plan];
-    const task = newPlan[dayIndex].items.find((t) => t.id === taskId);
-    if (task) {
-      task.status = status;
-      savePlan(newPlan);
-      if (status === "atrasado") toast("Bloco marcado como atrasado.");
-    }
-  };
+        return {
+          id: item.id,
+          subjectId: item.subject_id || "",
+          subjectName: subject?.name || "Sem Matéria",
+          topicName: decoded.topicName,
+          durationMinutes: item.duration_minutes,
+          type: decoded.type,
+          status: status,
+          scheduledFor: item.scheduled_for,
+        };
+      });
 
-  const moveTask = (fromDayIdx: number, toDayIdx: number, taskId: string) => {
-    if (fromDayIdx === toDayIdx) return;
+      return { dayName, date: dayDate, items };
+    });
+  }, [planItems, subjects]);
 
-    const newPlan = [...plan];
-    const taskIndex = newPlan[fromDayIdx].items.findIndex((t) => t.id === taskId);
-    if (taskIndex > -1) {
-      const [task] = newPlan[fromDayIdx].items.splice(taskIndex, 1);
-      newPlan[toDayIdx].items.push(task);
-      savePlan(newPlan);
-      toast.success(`Bloco movido para ${newPlan[toDayIdx].dayName}`);
-    }
-  };
+  // Mutations
+  const generatePlanMutation = useMutation({
+    mutationFn: async () => {
+      if (subjects.length === 0) {
+        throw new Error("Você precisa cadastrar matérias na Central do Edital primeiro!");
+      }
 
-  const deleteTask = (dayIndex: number, taskId: string) => {
-    const newPlan = [...plan];
-    newPlan[dayIndex].items = newPlan[dayIndex].items.filter((t) => t.id !== taskId);
-    savePlan(newPlan);
-    toast("Bloco removido do plano.");
-  };
+      const start = getStartOfWeek(new Date());
+      const end = getEndOfWeek(start);
+      const dates = getWeekDates(start);
 
-  const handleEditSave = () => {
-    if (!editingTask) return;
-    const newPlan = [...plan];
-    const taskIndex = newPlan[editingTask.dayIdx].items.findIndex(
-      (t) => t.id === editingTask.task.id,
-    );
-    if (taskIndex > -1) {
-      newPlan[editingTask.dayIdx].items[taskIndex] = editingTask.task;
-      savePlan(newPlan);
+      let targetPlanId = weeklyPlan?.id;
+
+      if (!targetPlanId) {
+        const { data: newPlan, error: planError } = await supabase
+          .from("weekly_plans")
+          .insert([
+            {
+              user_id: user?.id,
+              start_date: start.toISOString().split("T")[0],
+              end_date: end.toISOString().split("T")[0],
+            },
+          ])
+          .select()
+          .single();
+
+        if (planError) throw planError;
+        targetPlanId = newPlan.id;
+      } else {
+        // Clear existing items to regenerate
+        await supabase.from("plan_items").delete().eq("weekly_plan_id", targetPlanId);
+      }
+
+      const newItems: any[] = [];
+      let subjectIdx = 0;
+
+      WEEK_DAYS.forEach((day, dIdx) => {
+        let hours = preferences?.hours_per_day || 4;
+        if (day === "Domingo") hours = Math.max(1, Math.floor(hours / 2));
+
+        for (let i = 0; i < hours; i++) {
+          const sub = subjects[subjectIdx % subjects.length];
+          subjectIdx++;
+
+          const type: ActivityType =
+            i % 4 === 0 ? "revisao" : i % 2 === 0 ? "questoes" : "teoria";
+          const topicName = `${ACTIVITY_LABELS[type]} - Módulo ${Math.floor(i / 2) + 1}`;
+
+          const dateForTask = new Date(dates[dIdx]);
+          dateForTask.setHours(8 + i, 0, 0, 0);
+
+          newItems.push({
+            weekly_plan_id: targetPlanId,
+            subject_id: sub.id,
+            title: encodeTitle(type, topicName, false),
+            scheduled_for: dateForTask.toISOString(),
+            duration_minutes: 60,
+            completed: false,
+          });
+        }
+      });
+
+      const { error: itemsError } = await supabase.from("plan_items").insert(newItems);
+      if (itemsError) throw itemsError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["weeklyPlan"] });
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardData"] });
+      toast.success("Cronograma otimizado com sucesso!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (task: PlanTask) => {
+      const isCompleted = task.status === "concluido";
+      const { error } = await supabase
+        .from("plan_items")
+        .update({ completed: !isCompleted })
+        .eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardData"] });
+    },
+  });
+
+  const markDelayedMutation = useMutation({
+    mutationFn: async (task: PlanTask) => {
+      const newTitle = encodeTitle(task.type, task.topicName, true);
+      const { error } = await supabase
+        .from("plan_items")
+        .update({ title: newTitle, completed: false })
+        .eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      toast.info("Bloco marcado como atrasado.");
+    },
+  });
+
+  const moveTaskMutation = useMutation({
+    mutationFn: async ({ task, toDayIdx }: { task: PlanTask; toDayIdx: number }) => {
+      const targetDate = new Date(plan[toDayIdx].date);
+      const originalTime = new Date(task.scheduledFor);
+      targetDate.setHours(originalTime.getHours(), originalTime.getMinutes(), 0, 0);
+
+      const { error } = await supabase
+        .from("plan_items")
+        .update({ scheduled_for: targetDate.toISOString() })
+        .eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      toast.success(`Bloco movido para ${plan[vars.toDayIdx].dayName}`);
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("plan_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      toast.info("Bloco removido do plano.");
+    },
+  });
+
+  const saveTaskMutation = useMutation({
+    mutationFn: async (task: PlanTask) => {
+      const newTitle = encodeTitle(task.type, task.topicName, task.status === "atrasado");
+      const { error } = await supabase
+        .from("plan_items")
+        .update({
+          subject_id: task.subjectId,
+          title: newTitle,
+          duration_minutes: task.durationMinutes,
+        })
+        .eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
       setEditingTask(null);
       toast.success("Bloco atualizado!");
-    }
+    },
+  });
+
+  // Handlers
+  const handleEditSave = () => {
+    if (!editingTask) return;
+    saveTaskMutation.mutate(editingTask.task);
   };
 
-  const hasEmptyPlan = plan.every((day) => day.items.length === 0);
+  const hasEmptyPlan = planItems.length === 0;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto pb-24 lg:pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold">Seu Cronograma</h1>
-          <p className="text-muted-foreground mt-1 text-lg">Organize sua semana com precisão.</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">Seu Cronograma</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Organize sua semana com precisão.</p>
         </div>
         <Button
-          onClick={generateAIPlan}
-          disabled={isGenerating}
+          onClick={() => generatePlanMutation.mutate()}
+          disabled={generatePlanMutation.isPending || loadingPlan}
           className="w-full md:w-auto shadow-glow font-bold"
         >
-          {isGenerating ? (
+          {generatePlanMutation.isPending ? (
             <span className="flex items-center">
               <BrainCircuit className="mr-2 h-4 w-4 animate-pulse" /> Processando...
             </span>
           ) : (
             <span className="flex items-center">
-              <BrainCircuit className="mr-2 h-4 w-4" /> Gerar Cronograma IA
+              <BrainCircuit className="mr-2 h-4 w-4" />{" "}
+              {hasEmptyPlan ? "Gerar Cronograma IA" : "Regerar Cronograma"}
             </span>
           )}
         </Button>
       </div>
 
-      {hasEmptyPlan && !isGenerating ? (
+      {loadingPlan || loadingItems ? (
+        <div className="flex justify-center p-12 text-muted-foreground animate-pulse">
+          Carregando cronograma...
+        </div>
+      ) : hasEmptyPlan ? (
         <Card className="bg-surface/30 border-dashed border-border/50 py-16 shadow-none">
           <CardContent className="flex flex-col items-center text-center space-y-4">
             <CalendarDays size={56} className="text-muted-foreground/20" />
@@ -262,7 +440,7 @@ function PlanoSemanalRoute() {
               </p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
                 Clique no botão acima para deixar a Inteligência Artificial estruturar seus blocos
-                de estudo.
+                de estudo baseados nas suas metas.
               </p>
             </div>
           </CardContent>
@@ -283,7 +461,7 @@ function PlanoSemanalRoute() {
                 <div className="flex items-center justify-between w-full pr-4">
                   <h3 className="font-bold text-lg">{day.dayName}</h3>
                   <div className="flex items-center gap-2 text-sm font-normal">
-                    <span className="text-muted-foreground bg-surface px-2 py-1 rounded">
+                    <span className="text-muted-foreground bg-background px-2 py-1 rounded">
                       {day.items.filter((i) => i.status === "concluido").length}/{day.items.length}{" "}
                       Concluídos
                     </span>
@@ -309,7 +487,8 @@ function PlanoSemanalRoute() {
                     >
                       <div className="flex items-start sm:items-center gap-3">
                         <button
-                          onClick={() => toggleStatus(idx, task.id)}
+                          onClick={() => toggleStatusMutation.mutate(task)}
+                          disabled={toggleStatusMutation.isPending}
                           className={`mt-1 sm:mt-0 flex-shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                             task.status === "concluido"
                               ? "bg-primary border-primary text-primary-foreground"
@@ -322,13 +501,17 @@ function PlanoSemanalRoute() {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
-                              className={`font-semibold ${task.status === "concluido" ? "line-through text-muted-foreground" : ""}`}
+                              className={`font-semibold ${
+                                task.status === "concluido" ? "line-through text-muted-foreground" : ""
+                              }`}
                             >
                               {task.subjectName}
                             </span>
                             <Badge
                               variant="outline"
-                              className={`text-[10px] h-5 uppercase px-1.5 ${ACTIVITY_COLORS[task.type]}`}
+                              className={`text-[10px] h-5 uppercase px-1.5 ${
+                                ACTIVITY_COLORS[task.type]
+                              }`}
                             >
                               {ACTIVITY_LABELS[task.type]}
                             </Badge>
@@ -362,15 +545,13 @@ function PlanoSemanalRoute() {
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => toggleStatus(idx, task.id)}>
+                            <DropdownMenuItem onClick={() => toggleStatusMutation.mutate(task)}>
                               <CheckCircle2 className="mr-2 h-4 w-4" />
                               {task.status === "concluido"
                                 ? "Desmarcar Concluído"
                                 : "Marcar Concluído"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setTaskStatus(idx, task.id, "atrasado")}
-                            >
+                            <DropdownMenuItem onClick={() => markDelayedMutation.mutate(task)}>
                               <Clock className="mr-2 h-4 w-4" /> Marcar como Atrasado
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -384,7 +565,7 @@ function PlanoSemanalRoute() {
                                   {WEEK_DAYS.map((d, dIdx) => (
                                     <DropdownMenuItem
                                       key={d}
-                                      onClick={() => moveTask(idx, dIdx, task.id)}
+                                      onClick={() => moveTaskMutation.mutate({ task, toDayIdx: dIdx })}
                                       disabled={idx === dIdx}
                                     >
                                       {d}
@@ -399,7 +580,11 @@ function PlanoSemanalRoute() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => deleteTask(idx, task.id)}
+                              onClick={() => {
+                                if (confirm("Remover este bloco?")) {
+                                  deleteTaskMutation.mutate(task.id);
+                                }
+                              }}
                               className="text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" /> Excluir
@@ -508,7 +693,9 @@ function PlanoSemanalRoute() {
             <Button variant="outline" onClick={() => setEditingTask(null)}>
               Cancelar
             </Button>
-            <Button onClick={handleEditSave}>Salvar Alterações</Button>
+            <Button onClick={handleEditSave} disabled={saveTaskMutation.isPending}>
+              {saveTaskMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

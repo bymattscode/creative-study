@@ -1,7 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { UserProfile, Goal, Subject } from "@/types/models";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { UserProfile, Goal } from "@/types/models";
 import { useSyncStorage } from "@/hooks/useSyncStorage";
+import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,14 +48,60 @@ const DEFAULT_COLORS = [
 
 function ConfiguracoesRoute() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
 
-  // States
+  // Profile and Prefs still using SyncStorage (for now, or can be migrated later)
   const [profile, setProfile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
-  const [goal, setGoal] = useSyncStorage<Goal | null>("@sinapse:currentGoal", null);
-  const [subjects, setSubjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
 
-  const [newSubjectName, setNewSubjectName] = useState("");
-  const [newSubjectColor, setNewSubjectColor] = useState(DEFAULT_COLORS[0]);
+  // Goal data fetching
+  const { data: goal } = useQuery({
+    queryKey: ["currentGoal", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goals")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("is_active", true)
+        .single();
+      if (error && error.code !== "PGRST116") throw error; // PGRST116 is not found
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const [localGoal, setLocalGoal] = useState({ title: "", targetDate: "" });
+
+  useEffect(() => {
+    if (goal) {
+      setLocalGoal({
+        title: goal.title || "",
+        targetDate: goal.target_date ? new Date(goal.target_date).toISOString().split("T")[0] : "",
+      });
+    }
+  }, [goal]);
+
+  const updateGoalMutation = useMutation({
+    mutationFn: async () => {
+      if (!goal) return;
+      const { error } = await supabase
+        .from("goals")
+        .update({
+          title: localGoal.title,
+          target_date: localGoal.targetDate || null,
+        })
+        .eq("id", goal.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Objetivo atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["currentGoal", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardData", user?.id] }); // refresh dashboard
+    },
+    onError: (err) => {
+      toast.error("Erro ao atualizar objetivo: " + err.message);
+    }
+  });
 
   // Handlers
   const handleSaveProfile = () => {
@@ -62,41 +111,23 @@ function ConfiguracoesRoute() {
   };
 
   const handleSaveGoal = () => {
-    if (goal) {
-      toast.success("Objetivo atualizado com sucesso!");
+    if (!localGoal.title.trim()) {
+      toast.error("O nome do objetivo é obrigatório.");
+      return;
     }
+    updateGoalMutation.mutate();
   };
 
-  const handleAddSubject = () => {
-    if (!newSubjectName.trim()) return;
-
-    const newSubject: Subject = {
-      id: crypto.randomUUID(),
-      name: newSubjectName.trim(),
-      color: newSubjectColor,
-    };
-
-    const updated = [...subjects, newSubject];
-    setSubjects(updated);
-    setNewSubjectName("");
-    toast.success("Matéria adicionada!");
-  };
-
-  const handleDeleteSubject = (id: string) => {
-    const updated = subjects.filter((s) => s.id !== id);
-    setSubjects(updated);
-    toast.info("Matéria removida.");
-  };
-
-  const handleResetData = () => {
+  const handleResetData = async () => {
     if (
       window.confirm(
         "ATENÇÃO: Você tem certeza que deseja APAGAR TODO O HISTÓRICO? Essa ação não pode ser desfeita.",
       )
     ) {
       localStorage.clear();
+      await signOut();
       toast.success("Todos os dados foram resetados.");
-      navigate({ to: "/onboarding" });
+      navigate({ to: "/login" });
     }
   };
 
@@ -203,10 +234,8 @@ function ConfiguracoesRoute() {
                 <div className="space-y-2">
                   <Label>Nome da Prova/Objetivo</Label>
                   <Input
-                    value={goal?.title || ""}
-                    onChange={(e) =>
-                      setGoal((prev) => (prev ? { ...prev, title: e.target.value } : null))
-                    }
+                    value={localGoal.title}
+                    onChange={(e) => setLocalGoal({ ...localGoal, title: e.target.value })}
                     className="bg-background"
                   />
                 </div>
@@ -214,14 +243,8 @@ function ConfiguracoesRoute() {
                   <Label>Data Alvo (Opcional)</Label>
                   <Input
                     type="date"
-                    value={
-                      goal?.targetDate ? new Date(goal.targetDate).toISOString().split("T")[0] : ""
-                    }
-                    onChange={(e) =>
-                      setGoal((prev) =>
-                        prev ? { ...prev, targetDate: new Date(e.target.value) } : null,
-                      )
-                    }
+                    value={localGoal.targetDate}
+                    onChange={(e) => setLocalGoal({ ...localGoal, targetDate: e.target.value })}
                     className="bg-background"
                   />
                 </div>
@@ -240,67 +263,15 @@ function ConfiguracoesRoute() {
               <CardDescription>Gerencie as disciplinas do seu escopo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Add New */}
-              <div className="flex items-end gap-3 p-4 bg-background/50 rounded-lg border border-border">
-                <div className="flex-1 space-y-2">
-                  <Label>Nova Matéria</Label>
-                  <Input
-                    placeholder="Ex: Direito Constitucional"
-                    value={newSubjectName}
-                    onChange={(e) => setNewSubjectName(e.target.value)}
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-2 w-16">
-                  <Label>Cor</Label>
-                  <div className="relative">
-                    <Input
-                      type="color"
-                      value={newSubjectColor}
-                      onChange={(e) => setNewSubjectColor(e.target.value)}
-                      className="p-1 h-10 w-full cursor-pointer bg-background"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={handleAddSubject}
-                  disabled={!newSubjectName.trim()}
-                  variant="secondary"
-                  className="px-3"
-                >
-                  <Plus size={18} />
+              <div className="flex flex-col items-center justify-center p-8 bg-background/50 rounded-lg border border-border border-dashed text-center">
+                <Target className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <h3 className="text-lg font-medium">Sua Central do Edital</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-4">
+                  O gerenciamento de matérias e assuntos (tópicos) foi movido para uma tela dedicada, onde você tem controle total sobre o seu edital.
+                </p>
+                <Button asChild>
+                  <Link to="/app/materias">Acessar Matérias e Assuntos</Link>
                 </Button>
-              </div>
-
-              {/* List */}
-              <div className="space-y-2">
-                {subjects.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className="flex items-center justify-between p-3 rounded-md bg-background border border-border/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: sub.color }}
-                      />
-                      <span className="font-medium">{sub.name}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteSubject(sub.id)}
-                      className="text-muted-foreground hover:text-red-400"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                ))}
-                {subjects.length === 0 && (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    Nenhuma matéria cadastrada.
-                  </p>
-                )}
               </div>
             </CardContent>
           </Card>

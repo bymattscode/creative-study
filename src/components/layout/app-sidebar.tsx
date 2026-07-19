@@ -24,6 +24,7 @@ import {
 import { UserProfile } from "@/types/models";
 import { Badge } from "@/components/ui/badge";
 import { useSyncStorage } from "@/hooks/useSyncStorage";
+import { useAuth } from "@/contexts/auth";
 
 // Itens do menu principal
 const mainNavItems = [
@@ -39,6 +40,7 @@ export function AppSidebar() {
   const routerState = useRouterState();
   const pathname = routerState.location.pathname;
   const [profile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
+  const { signOut } = useAuth();
 
   return (
     <Sidebar variant="inset">
@@ -97,11 +99,15 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="text-destructive hover:text-destructive">
-                  <Link to="/">
-                    <LogOut />
-                    <span>Sair</span>
-                  </Link>
+                <SidebarMenuButton 
+                  className="text-destructive hover:text-destructive w-full justify-start cursor-pointer"
+                  onClick={async () => {
+                    await signOut();
+                    localStorage.removeItem("@sinapse:onboardingCompleted"); // Opcional: força reavaliação se logar dnv
+                  }}
+                >
+                  <LogOut />
+                  <span>Sair</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

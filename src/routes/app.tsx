@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { useAuth } from "@/contexts/auth";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -9,14 +10,27 @@ export const Route = createFileRoute("/app")({
 
 function AppLayout() {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
+    if (isLoading) return; // Aguarda carregar a sessão
+
+    if (!user) {
+      // Se não tiver logado, joga pro login
+      navigate({ to: "/login", replace: true });
+      return;
+    }
+
     // Força o onboarding caso não tenha sido completado ainda
     const hasOnboarding = localStorage.getItem("@sinapse:onboardingCompleted");
     if (!hasOnboarding) {
       navigate({ to: "/onboarding", replace: true });
     }
-  }, [navigate]);
+  }, [navigate, user, isLoading]);
+
+  if (isLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center bg-background">Carregando...</div>;
+  }
 
   return (
     <SidebarProvider>

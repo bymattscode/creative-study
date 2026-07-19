@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { Subject, StudySession, ReviewItem } from "@/types/models";
-import { useSyncStorage } from "@/hooks/useSyncStorage";
+import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw, FastForward, CheckCircle2, History, Square } from "lucide-react";
+import { Play, Pause, RotateCcw, FastForward, History, Square } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -31,10 +32,51 @@ const ACTIVITY_LABELS: Record<ActivityType, string> = {
   redacao: "Redação",
 };
 
+// Utilities to serialize custom data into the "notes" column
+const encodeNotes = (type: ActivityType, topicName: string) =>
+  JSON.stringify({ type, topicName });
+
+const decodeNotes = (raw?: string | null) => {
+  if (!raw) return { type: "teoria" as ActivityType, topicName: "Sem Tópico" };
+  try {
+    const p = JSON.parse(raw);
+    return {
+      type: (p.type || "teoria") as ActivityType,
+      topicName: (p.topicName || "Sem Tópico") as string,
+    };
+  } catch {
+    return { type: "teoria" as ActivityType, topicName: raw };
+  }
+};
+
 function EstudoRoute() {
-  const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
-  const [history, setHistory] = useSyncStorage<StudySession[]>("@sinapse:studyHistory", []);
-  const [reviews, setReviews] = useSyncStorage<ReviewItem[]>("@sinapse:reviewItems", []);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Queries
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("subjects").select("*").eq("user_id", user?.id);
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: recentHistory = [] } = useQuery({
+    queryKey: ["recentStudySessions", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("study_sessions")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   // Form State
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -84,50 +126,99 @@ function EstudoRoute() {
     setElapsedTime(0);
   };
 
-  const saveSessionToHistory = (durationSeconds: number) => {
-    if (!selectedSubject || durationSeconds < 60) return; // Don't save sessions under 1 min for realism (unless forced by UI)
+  // Mutation para salvar sessão
+  const saveSessionMutation = useMutation({
+    mutationFn: async ({
+      subjectId,
+      durationSeconds,
+      type,
+      topicName,
+    }: {
+      subjectId: string;
+      durationSeconds: number;
+      type: ActivityType;
+      topicName: string;
+    }) => {
+      if (!user?.id) throw new Error("Não autenticado");
 
-    const newSession: StudySession = {
-      id: Math.random().toString(36).substring(7),
-      goalId: "default", // would come from goal
-      subjectId: selectedSubject,
-      topic: topic || "Sem tópico",
-      durationMinutes: Math.floor(durationSeconds / 60),
-      type: selectedType,
-      focusScore: 100, // mock
-      createdAt: new Date().toISOString(),
-    };
+      const durationMinutes = Math.floor(durationSeconds / 60);
+      if (durationMinutes < 1) return null; // Prevenção extra
 
-    const updatedHistory = [newSession, ...history];
-    setHistory(updatedHistory);
+      const encodedNotes = encodeNotes(type, topicName);
+      const startTime = new Date(Date.now() - durationSeconds * 1000).toISOString();
+      const endTime = new Date().toISOString();
 
-    // Conexão Estudo -> Revisão automática
-    if (selectedType === "teoria" || selectedType === "questoes") {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      const newReview = {
-        id: Math.random().toString(36).substring(7),
-        subjectId: selectedSubject,
-        topicName: topic || "Revisão da última sessão",
-        nextReviewDate: tomorrow.toISOString(),
-        intervalDays: 1,
-        confidenceLevel: 50,
-        priority: "Média" as "Alta" | "Média" | "Baixa",
-      };
-      
-      setReviews([...reviews, newReview]);
-      toast.success("Revisão agendada para amanhã automaticamente!");
-    }
-  };
+      const { data, error } = await supabase
+        .from("study_sessions")
+        .insert([
+          {
+            user_id: user.id,
+            subject_id: subjectId,
+            start_time: startTime,
+            end_time: endTime,
+            duration_minutes: durationMinutes,
+            focus_score: 100, // mock score base
+            notes: encodedNotes,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Se for teoria ou questões, tenta já inserir uma revisão para amanhã (Espaçada)
+      if (type === "teoria" || type === "questoes") {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Dispara insert, se falhar não mata o processo
+        await supabase.from("review_items").insert([
+          {
+            user_id: user.id,
+            subject_id: subjectId,
+            topic_name: topicName,
+            next_review_date: tomorrow.toISOString(),
+            interval_days: 1,
+            confidence_level: 50,
+            priority: "Média",
+          },
+        ]);
+      }
+
+      return data;
+    },
+    onSuccess: (data, vars) => {
+      if (!data) return; // Se foi < 1 min, retorna null
+
+      queryClient.invalidateQueries({ queryKey: ["recentStudySessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardData"] });
+      queryClient.invalidateQueries({ queryKey: ["performanceData"] }); // Caso o dashboard use
+
+      if (vars.type === "teoria" || vars.type === "questoes") {
+        toast.success(
+          `Sessão salva! Revisão de "${vars.topicName}" agendada automaticamente para amanhã.`,
+        );
+      } else {
+        toast.success(`Sessão de estudos concluída com sucesso!`);
+      }
+    },
+    onError: (err: any) => toast.error(`Erro ao salvar: ${err.message}`),
+  });
 
   const completeSession = (forceSaveLivre = false) => {
     setIsActive(false);
+    const finalTopic = topic || "Sem tópico";
 
     if (mode === "Foco") {
       setSessionCount((prev) => prev + 1);
       toast.success("Sessão de foco concluída! Ótimo trabalho.");
-      saveSessionToHistory(25 * 60); // Full pomodoro
+
+      saveSessionMutation.mutate({
+        subjectId: selectedSubject,
+        durationSeconds: 25 * 60,
+        type: selectedType,
+        topicName: finalTopic,
+      });
 
       if ((sessionCount + 1) % 4 === 0) {
         switchMode("Pausa Longa");
@@ -136,8 +227,12 @@ function EstudoRoute() {
       }
     } else if (mode === "Livre" || forceSaveLivre) {
       if (elapsedTime >= 60) {
-        saveSessionToHistory(elapsedTime);
-        toast.success(`Sessão finalizada. ${Math.floor(elapsedTime / 60)} minutos registrados!`);
+        saveSessionMutation.mutate({
+          subjectId: selectedSubject,
+          durationSeconds: elapsedTime,
+          type: selectedType,
+          topicName: finalTopic,
+        });
       } else {
         toast("Sessão muito curta para registrar (menos de 1 min).");
       }
@@ -191,7 +286,7 @@ function EstudoRoute() {
 
   const progress =
     mode === "Livre"
-      ? 100 // Full ring for free mode, or some pulsing effect
+      ? 100
       : ((getDuration(mode) - timeLeft) / getDuration(mode)) * 100;
 
   return (
@@ -222,7 +317,7 @@ function EstudoRoute() {
           ))}
         </div>
 
-        {/* Inputs da Sessão (Só mostra se for modo Foco ou Livre) */}
+        {/* Inputs da Sessão */}
         {(mode === "Foco" || mode === "Livre") && (
           <div className="space-y-3 mb-4 text-left">
             <div className="grid grid-cols-2 gap-2">
@@ -295,7 +390,13 @@ function EstudoRoute() {
             strokeWidth="4"
             fill="transparent"
             className={`
-              ${mode === "Foco" ? "text-primary" : mode === "Livre" ? "text-purple-500" : "text-secondary"} 
+              ${
+                mode === "Foco"
+                  ? "text-primary"
+                  : mode === "Livre"
+                    ? "text-purple-500"
+                    : "text-secondary"
+              } 
               transition-all duration-1000 ease-linear
             `}
             strokeDasharray="301.59"
@@ -325,7 +426,7 @@ function EstudoRoute() {
             size="icon"
             className="h-12 w-12 rounded-full"
             onClick={resetTimer}
-            disabled={mode === "Foco" && isActive} // Can't reset active pomodoro usually, but let's allow it for freedom
+            disabled={mode === "Foco" && isActive}
           >
             <RotateCcw size={20} />
           </Button>
@@ -333,8 +434,15 @@ function EstudoRoute() {
           <Button
             size="icon"
             className={`h-16 w-16 rounded-full shadow-glow transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_rgba(168,255,0,0.4)]
-              ${mode === "Foco" ? "bg-primary text-primary-foreground hover:bg-primary" : mode === "Livre" ? "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/50" : "bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-none"}`}
+              ${
+                mode === "Foco"
+                  ? "bg-primary text-primary-foreground hover:bg-primary"
+                  : mode === "Livre"
+                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/50"
+                    : "bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-none"
+              }`}
             onClick={toggleTimer}
+            disabled={saveSessionMutation.isPending}
           >
             {isActive ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
           </Button>
@@ -346,7 +454,7 @@ function EstudoRoute() {
               className="h-12 w-12 rounded-full border-red-500/50 text-red-500 hover:bg-red-500/10"
               onClick={() => completeSession(true)}
               title="Parar e Salvar"
-              disabled={elapsedTime < 60 && !isActive}
+              disabled={(elapsedTime < 60 && !isActive) || saveSessionMutation.isPending}
             >
               <Square size={20} />
             </Button>
@@ -357,6 +465,7 @@ function EstudoRoute() {
               className="h-12 w-12 rounded-full"
               onClick={skipTimer}
               title="Pular timer (Testes)"
+              disabled={saveSessionMutation.isPending}
             >
               <FastForward size={20} />
             </Button>
@@ -370,21 +479,24 @@ function EstudoRoute() {
             size="sm"
             onClick={skipTimer}
             className="text-muted-foreground text-xs h-6"
+            disabled={saveSessionMutation.isPending}
           >
             + 1h (Debug)
           </Button>
         )}
       </div>
 
-      {/* Histórico Recente (Opcional) */}
-      {history.length > 0 && (
+      {/* Histórico Recente */}
+      {recentHistory.length > 0 && (
         <div className="w-full max-w-sm mt-8 space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-bold uppercase tracking-widest border-b border-border pb-2">
             <History size={14} /> Últimas Sessões
           </div>
           <div className="space-y-2">
-            {history.slice(0, 3).map((sess) => {
-              const sub = subjects.find((s) => s.id === sess.subjectId);
+            {recentHistory.map((sess: any) => {
+              const sub = subjects.find((s) => s.id === sess.subject_id);
+              const notes = decodeNotes(sess.notes);
+
               return (
                 <div
                   key={sess.id}
@@ -392,15 +504,19 @@ function EstudoRoute() {
                 >
                   <div className="flex flex-col">
                     <span className="font-bold">{sub ? sub.name : "Desconhecida"}</span>
-                    <span className="text-xs text-muted-foreground">{sess.topic}</span>
+                    <span className="text-xs text-muted-foreground truncate w-40">
+                      {notes.topicName}
+                    </span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="font-bold">{sess.durationMinutes} min</span>
+                    <span className="font-bold text-foreground">
+                      {sess.duration_minutes} min
+                    </span>
                     <Badge
                       variant="outline"
                       className="text-[9px] uppercase px-1 h-4 bg-background"
                     >
-                      {ACTIVITY_LABELS[sess.type as ActivityType] || sess.type}
+                      {ACTIVITY_LABELS[notes.type] || notes.type}
                     </Badge>
                   </div>
                 </div>

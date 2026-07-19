@@ -1,8 +1,5 @@
-import { UserProfile, Goal, Subject } from "@/types/models";
-import { v4 as uuidv4 } from "uuid"; // We might not have uuid installed, I'll use a simple random string for now if uuid is not there. Wait, I will use a simple generator.
-
-// Simple ID generator since we don't have a backend yet
-const generateId = () => Math.random().toString(36).substring(2, 15);
+import { UserProfile, Goal, Subject, OnboardingPreference } from "@/types/models";
+import { supabase } from "@/lib/supabase";
 
 export interface OnboardingData {
   name: string;
@@ -14,76 +11,77 @@ export interface OnboardingData {
   subjects: Array<{ name: string; difficulty: "Fácil" | "Médio" | "Difícil" }>;
 }
 
-export const saveOnboardingData = (data: OnboardingData) => {
+export const saveOnboardingData = async (userId: string, data: OnboardingData) => {
   try {
-    const userId = generateId();
-    const goalId = generateId();
+    // 1. Criar Goal
+    const { data: goalData, error: goalError } = await supabase
+      .from("goals")
+      .insert({
+        user_id: userId,
+        title: data.goalName,
+        target_date: data.goalDate || null,
+        is_active: true,
+      })
+      .select("id")
+      .single();
 
-    const profile: Partial<UserProfile> & { name: string } = {
-      userId,
-      name: data.name,
-      currentGoalId: goalId,
-      preferences: {
+    if (goalError) throw new Error(`Erro ao criar meta: ${goalError.message}`);
+    const goalId = goalData.id;
+
+    // 2. Atualizar ou Criar UserProfile
+    const { error: profileError } = await supabase
+      .from("user_profiles")
+      .upsert({
+        user_id: userId,
+        name: data.name,
+        student_type: data.studentType,
+        current_goal_id: goalId,
+        subscription_tier: "free",
+      }, { onConflict: "user_id" });
+
+    if (profileError) throw new Error(`Erro ao criar perfil: ${profileError.message}`);
+
+    // 3. Inserir Onboarding Preferences
+    const { error: prefError } = await supabase
+      .from("onboarding_preferences")
+      .upsert({
+        user_id: userId,
         theme: "system",
-        notificationsEnabled: true,
-        pomodoroLength: 25,
-        shortBreakLength: 5,
-        longBreakLength: 15,
-        hoursPerDay: data.hoursPerDay,
-        preferredTime: data.preferredTime,
-      },
-      updatedAt: new Date(),
-    };
+        notifications_enabled: true,
+        pomodoro_length: 25,
+        short_break_length: 5,
+        long_break_length: 15,
+        hours_per_day: data.hoursPerDay,
+        preferred_time: data.preferredTime,
+      }, { onConflict: "user_id" });
+      
+    if (prefError) throw new Error(`Erro nas preferências: ${prefError.message}`);
 
-    const goal: Goal = {
-      id: goalId,
-      userId,
-      title: data.goalName,
-      targetDate: data.goalDate ? new Date(data.goalDate) : undefined,
-      isActive: true,
-      createdAt: new Date(),
-    };
+    // 4. Inserir Subjects (Matérias)
+    const colors = ["#a8ff00", "#37d67a", "#ffcc33", "#ff5c7a", "#2a0863"];
+    const subjectsToInsert = data.subjects.map((sub, index) => ({
+      user_id: userId,
+      goal_id: goalId,
+      name: sub.name,
+      color: colors[index % colors.length],
+      difficulty: sub.difficulty,
+    }));
 
-    const subjects: Subject[] = data.subjects.map((sub, index) => {
-      // Definindo cores automáticas para as matérias
-      const colors = ["#a8ff00", "#37d67a", "#ffcc33", "#ff5c7a", "#2a0863"];
-      return {
-        id: generateId(),
-        userId,
-        goalId,
-        name: sub.name,
-        color: colors[index % colors.length],
-        createdAt: new Date(),
-      };
-    });
+    if (subjectsToInsert.length > 0) {
+      const { error: subjectsError } = await supabase
+        .from("subjects")
+        .insert(subjectsToInsert);
 
-    // Save to localStorage
-    localStorage.setItem("@sinapse:userProfile", JSON.stringify(profile));
-    localStorage.setItem("@sinapse:currentGoal", JSON.stringify(goal));
-    localStorage.setItem("@sinapse:subjects", JSON.stringify(subjects));
-    localStorage.setItem("@sinapse:onboardingCompleted", "true");
-
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("on-synced-storage-update", {
-          detail: { key: "@sinapse:userProfile", newValue: profile },
-        }),
-      );
-      window.dispatchEvent(
-        new CustomEvent("on-synced-storage-update", {
-          detail: { key: "@sinapse:currentGoal", newValue: goal },
-        }),
-      );
-      window.dispatchEvent(
-        new CustomEvent("on-synced-storage-update", {
-          detail: { key: "@sinapse:subjects", newValue: subjects },
-        }),
-      );
+      if (subjectsError) throw new Error(`Erro nas matérias: ${subjectsError.message}`);
     }
+
+    // 5. Marcar Onboarding Concluído localmente (cache leve para evitar fetchs repetidos no root)
+    localStorage.setItem("@sinapse:onboardingCompleted", "true");
 
     return true;
   } catch (error) {
-    console.error("Failed to save onboarding data", error);
+    console.error("Falha ao salvar os dados do onboarding na nuvem:", error);
     return false;
   }
 };
+

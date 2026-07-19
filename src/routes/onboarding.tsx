@@ -16,6 +16,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { saveOnboardingData, OnboardingData } from "@/lib/onboarding-store";
+import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingWizard,
@@ -23,9 +25,16 @@ export const Route = createFileRoute("/onboarding")({
 
 function OnboardingWizard() {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
   const [step, setStep] = useState(1);
   const totalSteps = 5;
   const progress = ((step - 1) / (totalSteps - 1)) * 100;
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate({ to: "/login", replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   // Form State
   const [data, setData] = useState<OnboardingData>({
@@ -48,15 +57,32 @@ function OnboardingWizard() {
 
   // Auto-finish effect on step 5
   useEffect(() => {
-    if (step === 5) {
-      // Simulate AI loading and save data
-      const timer = setTimeout(() => {
-        saveOnboardingData(data);
-        navigate({ to: "/app" });
-      }, 2500);
+    if (step === 5 && user) {
+      // Execute the async save operation
+      const performSave = async () => {
+        try {
+          const success = await saveOnboardingData(user.id, data);
+          if (success) {
+            navigate({ to: "/app", replace: true });
+          } else {
+            toast.error("Ocorreu um erro ao salvar seu perfil. Tente novamente.");
+            setStep(4); // Volta para a tela anterior
+          }
+        } catch (error) {
+          toast.error("Falha de conexão.");
+          setStep(4);
+        }
+      };
+      
+      // Dá um tempo simbólico de carregamento da "IA"
+      const timer = setTimeout(performSave, 2500);
       return () => clearTimeout(timer);
     }
-  }, [step, data, navigate]);
+  }, [step, data, navigate, user]);
+
+  if (isLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center bg-background">Carregando...</div>;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">

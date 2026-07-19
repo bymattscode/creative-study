@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { UserProfile, Goal, Subject, StudySession, ReviewItem } from "@/types/models";
-import { useSyncStorage } from "@/hooks/useSyncStorage";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth";
 import { generateDailyInsight } from "@/lib/ai-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,11 +28,87 @@ export const Route = createFileRoute("/app/")({
 });
 
 function DashboardRoute() {
-  const [profile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
-  const [goal] = useSyncStorage<Goal | null>("@sinapse:currentGoal", null);
-  const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
-  const [history] = useSyncStorage<StudySession[]>("@sinapse:studyHistory", []);
-  const [reviews] = useSyncStorage<ReviewItem[]>("@sinapse:reviewItems", []);
+  const { user } = useAuth();
+
+  const { data: profile, isLoading: loadingProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single();
+      return data ? {
+        id: data.id,
+        userId: data.user_id,
+        name: data.name,
+        subscriptionTier: data.subscription_tier,
+      } as UserProfile : null;
+    },
+    enabled: !!user,
+  });
+
+  const { data: goal } = useQuery({
+    queryKey: ["goal", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("goals").select("*").eq("user_id", user.id).eq("is_active", true).single();
+      return data ? {
+        id: data.id,
+        title: data.title,
+        targetDate: data.target_date ? new Date(data.target_date) : undefined,
+      } as Goal : null;
+    },
+    enabled: !!user,
+  });
+
+  const { data: prefs } = useQuery({
+    queryKey: ["prefs", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("onboarding_preferences").select("*").eq("user_id", user.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase.from("subjects").select("*").eq("user_id", user.id);
+      return (data || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        color: s.color,
+      } as Subject));
+    },
+    enabled: !!user,
+  });
+
+  const { data: history = [] } = useQuery({
+    queryKey: ["history", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase.from("study_sessions").select("*").eq("user_id", user.id);
+      return (data || []).map(s => ({
+        id: s.id,
+        subjectId: s.subject_id,
+        durationMinutes: s.duration_minutes,
+        createdAt: new Date(s.created_at),
+      } as StudySession));
+    },
+    enabled: !!user,
+  });
+
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["reviews", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      // Tabela review_items pode não existir ainda, usando catch para evitar quebrar
+      const { data, error } = await supabase.from("review_items").select("*").eq("user_id", user.id);
+      if (error) return [];
+      return data as ReviewItem[];
+    },
+    enabled: !!user,
+  });
 
   const insight = useMemo(
     () => generateDailyInsight(history, reviews, subjects),
@@ -59,8 +137,8 @@ function DashboardRoute() {
   const netHours = Math.floor(totalMinutes / 60);
   const netMins = totalMinutes % 60;
 
-  // Calculando Meta Semanal Simples (Ex: Meta de 20h = 1200min)
-  const weeklyGoalMins = 20 * 60;
+  // Calculando Meta Semanal Simples
+  const weeklyGoalMins = (prefs?.hours_per_day || 3) * 7 * 60;
   const progressPercent = Math.min(100, (totalMinutes / weeklyGoalMins) * 100);
 
   // Calculando Ofensiva (Dias únicos no histórico)
@@ -90,6 +168,17 @@ function DashboardRoute() {
     // Assume 10 horas (600 minutos) para fechar o edital de uma matéria para o MVP
     return Math.min(100, Math.floor((subjectMinutes / 600) * 100));
   };
+
+  if (loadingProfile && !profile) {
+    return (
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-muted-foreground animate-pulse">
+          <BrainCircuit size={40} className="text-primary/50" />
+          <p className="text-sm font-medium">Sincronizando Sinapses...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
@@ -193,12 +282,14 @@ function DashboardRoute() {
               <BrainCircuit size={16} /> Insight da Inteligência Artificial
             </div>
             <h2 className="text-xl md:text-2xl font-bold leading-tight">
-              Sua retenção em Exatas está caindo. <br className="hidden md:block" />
-              Vamos fazer um bloco de 25 min agora?
+              {history.length === 0 
+                ? "Sua jornada rumo à aprovação começa aqui!"
+                : "A Próxima Melhor Ação para o seu plano."}
             </h2>
             <p className="text-muted-foreground">
-              A IA analisou que você pulou as duas últimas revisões de Matemática. Resolver 5
-              questões agora vai recuperar sua curva de esquecimento.
+              {history.length === 0 
+                ? "A inteligência do Sinapse precisa de dados para te guiar. Que tal fazer sua primeira sessão de 25 minutos na sua matéria mais importante?"
+                : insight || "Tudo sob controle. Siga seu planejamento."}
             </p>
           </div>
 
@@ -326,42 +417,55 @@ function DashboardRoute() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              {/* Item de Estudo */}
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer">
-                <div className="mt-1 h-5 w-5 rounded-full border-2 border-muted-foreground group-hover:border-primary flex-shrink-0"></div>
-                <div className="flex flex-col flex-1">
-                  <span className="font-bold text-sm">Direito Constitucional</span>
-                  <span className="text-xs text-muted-foreground">
-                    Teoria: Direitos Fundamentais
-                  </span>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">
-                      60 min
-                    </span>
-                  </div>
+              {history.length === 0 && reviews.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                  <p className="text-sm">Nenhuma missão para hoje ainda.</p>
+                  <p className="text-xs mt-1">Comece estudando {subjects[0]?.name || "uma matéria"}!</p>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Exemplo de Missão Dinâmica (Estudo) baseada nas matérias cadastradas */}
+                  {subjects.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer">
+                      <div className="mt-1 h-5 w-5 rounded-full border-2 border-muted-foreground group-hover:border-primary flex-shrink-0"></div>
+                      <div className="flex flex-col flex-1">
+                        <span className="font-bold text-sm">{subjects[0].name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Sessão Sugerida pela IA
+                        </span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">
+                            {prefs?.pomodoro_length || 25} min
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Item de Revisão */}
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-[#2a0863]/20 border border-secondary/30 hover:border-secondary transition-colors group cursor-pointer">
-                <div className="mt-1 h-5 w-5 rounded-full border-2 border-secondary group-hover:border-secondary flex-shrink-0 flex items-center justify-center">
-                  <CheckCircle2
-                    size={12}
-                    className="text-secondary opacity-0 group-hover:opacity-100"
-                  />
-                </div>
-                <div className="flex flex-col flex-1">
-                  <span className="font-bold text-sm text-secondary-foreground">
-                    Revisão: 24 Flashcards
-                  </span>
-                  <span className="text-xs text-muted-foreground">Matemática, Português</span>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] uppercase font-bold bg-secondary/20 px-2 py-0.5 rounded text-secondary-foreground">
-                      ~15 min
-                    </span>
-                  </div>
-                </div>
-              </div>
+                  {/* Exemplo Dinâmico de Revisões (Se houver) */}
+                  {reviews.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-[#2a0863]/20 border border-secondary/30 hover:border-secondary transition-colors group cursor-pointer">
+                      <div className="mt-1 h-5 w-5 rounded-full border-2 border-secondary group-hover:border-secondary flex-shrink-0 flex items-center justify-center">
+                        <CheckCircle2
+                          size={12}
+                          className="text-secondary opacity-0 group-hover:opacity-100"
+                        />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="font-bold text-sm text-secondary-foreground">
+                          Revisões Pendentes
+                        </span>
+                        <span className="text-xs text-muted-foreground">{reviews.length} cards acumulados</span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] uppercase font-bold bg-secondary/20 px-2 py-0.5 rounded text-secondary-foreground">
+                            Alta Prioridade
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
               <Button
                 variant="ghost"

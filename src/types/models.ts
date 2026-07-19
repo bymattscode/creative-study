@@ -8,26 +8,34 @@
 // ==========================================
 
 export interface User {
-  id: string; // UUID
+  id: string; // UUID referenciando auth.users
   email: string;
   createdAt: Date;
 }
 
 export interface UserProfile {
+  id: string; // UUID (Espelho de auth.users.id ou id próprio)
   userId: string; // Fk -> User
   name: string;
   avatarUrl?: string;
+  studentType?: string; // Ex: Concurseiro, Vestibulando
   currentGoalId?: string; // Fk -> Goal
   subscriptionTier?: "free" | "pro"; // Controle de Paywall e Monetização
-  preferences: {
-    theme: "light" | "dark" | "system";
-    notificationsEnabled: boolean;
-    pomodoroLength: number; // Em minutos, padrão 25
-    shortBreakLength: number; // Em minutos, padrão 5
-    longBreakLength: number; // Em minutos, padrão 15
-    hoursPerDay?: number;
-    preferredTime?: "manhã" | "tarde" | "noite" | "madrugada" | "";
-  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OnboardingPreference {
+  id: string; // UUID
+  userId: string; // Fk -> User
+  theme: "light" | "dark" | "system";
+  notificationsEnabled: boolean;
+  pomodoroLength: number; // Em minutos, padrão 25
+  shortBreakLength: number; // Em minutos, padrão 5
+  longBreakLength: number; // Em minutos, padrão 15
+  hoursPerDay: number;
+  preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
+  createdAt: Date;
   updatedAt: Date;
 }
 
@@ -62,6 +70,7 @@ export interface Subject {
   goalId?: string; // Fk -> Goal (Matéria atrelada a um objetivo específico)
   name: string; // ex: "Biologia"
   color: string; // Código Hex
+  difficulty?: "Fácil" | "Médio" | "Difícil"; // Nível reportado no onboarding
   createdAt: Date;
 }
 
@@ -90,7 +99,7 @@ export interface PlanItem {
   weeklyPlanId: string; // Fk -> WeeklyPlan
   subjectId?: string; // Fk -> Subject
   topicId?: string; // Fk -> Topic
-  title: string; // Descrição rápida se não houver tópico/matéria atrelado
+  title: string; // JSON string contendo { type: "teoria" | "questoes", text: "..." } ou string simples
   scheduledFor: Date;
   durationMinutes: number;
   completed: boolean;
@@ -130,6 +139,7 @@ export interface PerformanceSnapshot {
 
 export interface ReviewItem {
   id: string;
+  userId: string; // Fk -> User
   subjectId: string;
   topicName: string;
   nextReviewDate: string; // ISO String
@@ -137,12 +147,14 @@ export interface ReviewItem {
   intervalDays: number;
   confidenceLevel: number; // 0 a 100
   priority: "Alta" | "Média" | "Baixa";
+  createdAt: Date;
 }
 
 export interface ReviewLog {
   id: string;
-  reviewItemId: string;
-  reviewedAt: string;
+  reviewItemId: string; // Fk -> ReviewItem
+  userId: string; // Fk -> User
+  reviewedAt: string; // ISO String
   perception: "Fácil" | "Médio" | "Difícil";
 }
 
