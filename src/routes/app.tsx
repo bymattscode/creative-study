@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 
@@ -7,6 +8,16 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppLayout() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Força o onboarding caso não tenha sido completado ainda
+    const hasOnboarding = localStorage.getItem("@sinapse:onboardingCompleted");
+    if (!hasOnboarding) {
+      navigate({ to: "/onboarding", replace: true });
+    }
+  }, [navigate]);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
