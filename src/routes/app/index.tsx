@@ -67,6 +67,30 @@ function DashboardRoute() {
   const uniqueDates = new Set(history.map((s) => new Date(s.createdAt).toDateString()));
   const offensiveDays = uniqueDates.size;
 
+  // Calculando Constância (últimos 5 dias)
+  const last5Days = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (4 - i));
+    return d;
+  });
+
+  const getDayLetter = (date: Date) => {
+    return date.toLocaleDateString("pt-BR", { weekday: "short" }).charAt(0).toUpperCase();
+  };
+
+  const hasStudiedOnDate = (date: Date) => {
+    const dateStr = date.toDateString();
+    return history.some((s) => new Date(s.createdAt).toDateString() === dateStr);
+  };
+
+  const getSubjectProgress = (subjectId: string) => {
+    const subjectMinutes = history
+      .filter((s) => s.subjectId === subjectId)
+      .reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+    // Assume 10 horas (600 minutos) para fechar o edital de uma matéria para o MVP
+    return Math.min(100, Math.floor((subjectMinutes / 600) * 100));
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
       {/* IA Insight Card (Copiloto) */}
@@ -132,15 +156,18 @@ function DashboardRoute() {
         {/* Constância Rápida Header */}
         <div className="flex items-center gap-3 bg-surface-elevated px-5 py-2.5 rounded-2xl border border-border shadow-sm">
           <div className="flex -space-x-1">
-            {/* Mock de Constância Visual */}
-            {["S", "T", "Q", "Q", "S"].map((d, i) => (
-              <div
-                key={i}
-                className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${i < Math.min(offensiveDays, 5) ? "bg-primary text-primary-foreground" : "bg-surface text-muted-foreground"}`}
-              >
-                {d}
-              </div>
-            ))}
+            {/* Constância Visual Real */}
+            {last5Days.map((date, i) => {
+              const studied = hasStudiedOnDate(date);
+              return (
+                <div
+                  key={i}
+                  className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background ${studied ? "bg-primary text-primary-foreground" : "bg-surface text-muted-foreground"}`}
+                >
+                  {getDayLetter(date)}
+                </div>
+              );
+            })}
           </div>
           <div className="flex flex-col ml-2">
             <span className="text-sm font-bold flex items-center gap-1">
@@ -358,21 +385,23 @@ function DashboardRoute() {
             </CardHeader>
             <CardContent className="pt-4 space-y-5">
               {subjects.length > 0 ? (
-                subjects.slice(0, 4).map((sub) => (
+                subjects.slice(0, 4).map((sub) => {
+                  const progressVal = getSubjectProgress(sub.id);
+                  return (
                   <div key={sub.id} className="space-y-2">
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-medium truncate pr-2">{sub.name}</span>
                       <span className="text-muted-foreground font-bold">
-                        {Math.floor(Math.random() * 40) + 10}%
+                        {progressVal}%
                       </span>
                     </div>
                     <Progress
-                      value={Math.floor(Math.random() * 40) + 10}
+                      value={progressVal}
                       className="h-1.5"
                       indicatorColor={sub.color || "bg-primary"}
                     />
                   </div>
-                ))
+                )})
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />

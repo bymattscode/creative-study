@@ -141,17 +141,25 @@ function PlanoSemanalRoute() {
 
       const newPlan = WEEK_DAYS.map((day) => {
         const items: PlanTask[] = [];
-        for (let i = 0; i < (day === "Domingo" ? 1 : 3); i++) {
-          const randomSub = subjects[Math.floor(Math.random() * subjects.length)];
-          const randomType = types[Math.floor(Math.random() * types.length)];
+        let hours = profile?.preferences?.hoursPerDay || 4;
+        // Dia mais leve no domingo
+        if (day === "Domingo") hours = Math.floor(hours / 2);
+        
+        for (let i = 0; i < hours; i++) {
+          // Distribuição cíclica das matérias para garantir cobertura
+          const subIndex = (WEEK_DAYS.indexOf(day) * hours + i) % subjects.length;
+          const sub = subjects[subIndex];
+          
+          // Padrão intercalado de tipos de estudo
+          const type: ActivityType = i % 4 === 0 ? "revisao" : (i % 2 === 0 ? "questoes" : "teoria");
 
           items.push({
             id: Math.random().toString(36).substring(7),
-            subjectId: randomSub.id,
-            subjectName: randomSub.name,
-            topicName: `${ACTIVITY_LABELS[randomType]} - ${randomSub.name}`,
-            durationMinutes: randomType === "questoes" ? 30 : 60,
-            type: randomType,
+            subjectId: sub.id,
+            subjectName: sub.name,
+            topicName: `${ACTIVITY_LABELS[type]} - Módulo ${Math.floor(i / 2) + 1}`,
+            durationMinutes: 60,
+            type: type,
             status: "pendente",
           });
         }

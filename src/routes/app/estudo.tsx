@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { Subject, StudySession } from "@/types/models";
+import { Subject, StudySession, ReviewItem } from "@/types/models";
 import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ const ACTIVITY_LABELS: Record<ActivityType, string> = {
 function EstudoRoute() {
   const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
   const [history, setHistory] = useSyncStorage<StudySession[]>("@sinapse:studyHistory", []);
+  const [reviews, setReviews] = useSyncStorage<ReviewItem[]>("@sinapse:reviewItems", []);
 
   // Form State
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -99,6 +100,25 @@ function EstudoRoute() {
 
     const updatedHistory = [newSession, ...history];
     setHistory(updatedHistory);
+
+    // Conexão Estudo -> Revisão automática
+    if (selectedType === "teoria" || selectedType === "questoes") {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const newReview = {
+        id: Math.random().toString(36).substring(7),
+        subjectId: selectedSubject,
+        topicName: topic || "Revisão da última sessão",
+        nextReviewDate: tomorrow.toISOString(),
+        intervalDays: 1,
+        confidenceLevel: 50,
+        priority: "Média" as "Alta" | "Média" | "Baixa",
+      };
+      
+      setReviews([...reviews, newReview]);
+      toast.success("Revisão agendada para amanhã automaticamente!");
+    }
   };
 
   const completeSession = (forceSaveLivre = false) => {

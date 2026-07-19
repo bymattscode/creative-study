@@ -164,10 +164,18 @@ function ConfiguracoesRoute() {
                   <Label>Disponibilidade (Horas/Dia)</Label>
                   <Input
                     type="number"
-                    value={profile?.availableHoursPerDay || ""}
+                    value={profile?.preferences?.hoursPerDay || ""}
                     onChange={(e) =>
                       setProfile((prev) =>
-                        prev ? { ...prev, availableHoursPerDay: Number(e.target.value) } : null,
+                        prev
+                          ? {
+                              ...prev,
+                              preferences: {
+                                ...prev.preferences,
+                                hoursPerDay: Number(e.target.value),
+                              },
+                            }
+                          : null,
                       )
                     }
                     className="bg-background"

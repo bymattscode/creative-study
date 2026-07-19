@@ -25,6 +25,8 @@ export interface UserProfile {
     pomodoroLength: number; // Em minutos, padrão 25
     shortBreakLength: number; // Em minutos, padrão 5
     longBreakLength: number; // Em minutos, padrão 15
+    hoursPerDay?: number;
+    preferredTime?: "manhã" | "tarde" | "noite" | "madrugada" | "";
   };
   updatedAt: Date;
 }

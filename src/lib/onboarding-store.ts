@@ -29,6 +29,8 @@ export const saveOnboardingData = (data: OnboardingData) => {
         pomodoroLength: 25,
         shortBreakLength: 5,
         longBreakLength: 15,
+        hoursPerDay: data.hoursPerDay,
+        preferredTime: data.preferredTime,
       },
       updatedAt: new Date(),
     };
