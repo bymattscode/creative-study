@@ -32,7 +32,7 @@ function CadastroRoute() {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -47,8 +47,15 @@ function CadastroRoute() {
       setLoading(false);
     } else {
       trackEvent("signup_completed");
-      toast.success("Conta criada com sucesso!");
-      // O user mudará e o useEffect redirecionará automaticamente
+      
+      if (!data.session) {
+        toast.success("Conta criada! Por favor, verifique seu e-mail para confirmar a conta.");
+        setLoading(false);
+        navigate({ to: "/login" });
+      } else {
+        toast.success("Conta criada com sucesso!");
+        // O user mudará e o useEffect redirecionará automaticamente
+      }
     }
   };
 
