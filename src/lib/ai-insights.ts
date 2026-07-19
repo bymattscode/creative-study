@@ -1,6 +1,18 @@
 import { StudySession, ReviewItem, Subject } from "@/types/models";
 
 /**
+ * Utilitário para ler metadados embutidos no campo notes
+ */
+const decodeNotes = (raw?: string | null) => {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+};
+
+/**
  * Função heurística temporária que simula o comportamento de uma IA de Copiloto.
  * Analisa os dados de estudos locais e gera uma string em linguagem natural
  * contendo um insight diário altamente acionável.
@@ -74,9 +86,12 @@ export function generateDailyInsight(
   };
 
   history.forEach((s) => {
+    const meta = decodeNotes(s.notes);
+    const sessionType = meta.type as string;
+    
     totalTime += s.durationMinutes;
-    if (timeByType[s.type as keyof typeof timeByType] !== undefined) {
-      timeByType[s.type as keyof typeof timeByType] += s.durationMinutes;
+    if (sessionType && timeByType[sessionType as keyof typeof timeByType] !== undefined) {
+      timeByType[sessionType as keyof typeof timeByType] += s.durationMinutes;
     }
   });
 

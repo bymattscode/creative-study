@@ -195,14 +195,14 @@ function ConfiguracoesRoute() {
                   <Label>Disponibilidade (Horas/Dia)</Label>
                   <Input
                     type="number"
-                    value={profile?.preferences?.hoursPerDay || ""}
+                    value={(profile as any)?.preferences?.hoursPerDay || ""}
                     onChange={(e) =>
                       setProfile((prev) =>
                         prev
                           ? {
                               ...prev,
                               preferences: {
-                                ...prev.preferences,
+                                ...(prev as any).preferences,
                                 hoursPerDay: Number(e.target.value),
                               },
                             }

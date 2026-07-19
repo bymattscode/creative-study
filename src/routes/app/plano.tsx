@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/app/plano")({
   component: PlanoSemanalRoute,
@@ -305,6 +306,9 @@ function PlanoSemanalRoute() {
       if (itemsError) throw itemsError;
     },
     onSuccess: () => {
+      if (!weeklyPlan) {
+        trackEvent("first_plan_generated");
+      }
       queryClient.invalidateQueries({ queryKey: ["weeklyPlan"] });
       queryClient.invalidateQueries({ queryKey: ["planItems"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardData"] });

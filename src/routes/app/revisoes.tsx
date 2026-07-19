@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Subject, ReviewItem } from "@/types/models";
-import { useSyncStorage } from "@/hooks/useSyncStorage";
+import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 import {
   BrainCircuit,
   CalendarDays,
@@ -17,19 +19,70 @@ import {
   Plus,
   History,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/app/revisoes")({
   component: RevisoesRoute,
 });
 
-function RevisoesRoute() {
-  const [subjects] = useSyncStorage<Subject[]>("@sinapse:subjects", []);
-  const [reviews, setReviews] = useSyncStorage<ReviewItem[]>("@sinapse:reviewItems", []);
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+type DbReviewItem = {
+  id: string;
+  subject_id: string;
+  topic_name: string;
+  next_review_date: string;
+  last_review_date: string | null;
+  interval_days: number;
+  confidence_level: number;
+  priority: "Alta" | "Média" | "Baixa";
+};
 
-  const saveData = (newReviews: ReviewItem[]) => {
-    setReviews(newReviews);
-  };
+function RevisoesRoute() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newReviewSubject, setNewReviewSubject] = useState("");
+  const [newReviewTopic, setNewReviewTopic] = useState("");
+
+  // Queries
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("subjects").select("*").eq("user_id", user?.id);
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: ["reviewItems", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("review_items")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("next_review_date", { ascending: true });
+      if (error) throw error;
+      return data as DbReviewItem[];
+    },
+    enabled: !!user?.id,
+  });
 
   const getSubjectColor = (subjectId: string) => {
     return subjects.find((s) => s.id === subjectId)?.color || "#a8ff00";
@@ -61,102 +114,114 @@ function RevisoesRoute() {
     return d > today;
   };
 
-  const lateReviews = reviews
-    .filter((r) => isLate(r.nextReviewDate))
-    .sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime());
-  const todayReviews = reviews.filter((r) => isToday(r.nextReviewDate));
-  const futureReviews = reviews
-    .filter((r) => isFuture(r.nextReviewDate))
-    .sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime());
+  const lateReviews = reviews.filter((r) => isLate(r.next_review_date));
+  const todayReviews = reviews.filter((r) => isToday(r.next_review_date));
+  const futureReviews = reviews.filter((r) => isFuture(r.next_review_date));
 
-  // SRS Logic
-  const handleReview = (item: ReviewItem, perception: "Difícil" | "Médio" | "Fácil") => {
-    let nextInterval = item.intervalDays || 1;
-    let newConfidence = item.confidenceLevel || 50;
+  // Mutations
+  const addReviewMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id || !newReviewSubject || !newReviewTopic) {
+        throw new Error("Preencha todos os campos.");
+      }
 
-    switch (perception) {
-      case "Difícil":
-        nextInterval = 1; // Try again tomorrow
-        newConfidence = Math.max(0, newConfidence - 20);
-        break;
-      case "Médio":
-        nextInterval = Math.ceil(nextInterval * 1.5);
-        newConfidence = Math.min(100, newConfidence + 10);
-        break;
-      case "Fácil":
-        nextInterval = Math.ceil(nextInterval * 2.5);
-        newConfidence = Math.min(100, newConfidence + 25);
-        break;
-    }
+      const { error } = await supabase.from("review_items").insert([
+        {
+          user_id: user.id,
+          subject_id: newReviewSubject,
+          topic_name: newReviewTopic,
+          next_review_date: new Date().toISOString(),
+          interval_days: 1,
+          confidence_level: 50,
+          priority: "Média",
+        },
+      ]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviewItems"] });
+      setIsAddModalOpen(false);
+      setNewReviewSubject("");
+      setNewReviewTopic("");
+      toast.success("Revisão adicionada com sucesso!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + nextInterval);
+  const handleReviewMutation = useMutation({
+    mutationFn: async ({
+      item,
+      perception,
+    }: {
+      item: DbReviewItem;
+      perception: "Difícil" | "Médio" | "Fácil";
+    }) => {
+      let nextInterval = item.interval_days || 1;
+      let newConfidence = item.confidence_level || 50;
 
-    let newPriority: "Alta" | "Média" | "Baixa" = "Baixa";
-    if (newConfidence < 40) newPriority = "Alta";
-    else if (newConfidence < 70) newPriority = "Média";
+      switch (perception) {
+        case "Difícil":
+          nextInterval = 1; // Try again tomorrow
+          newConfidence = Math.max(0, newConfidence - 20);
+          break;
+        case "Médio":
+          nextInterval = Math.ceil(nextInterval * 1.5);
+          newConfidence = Math.min(100, newConfidence + 10);
+          break;
+        case "Fácil":
+          nextInterval = Math.ceil(nextInterval * 2.5);
+          newConfidence = Math.min(100, newConfidence + 25);
+          break;
+      }
 
-    const updatedItem: ReviewItem = {
-      ...item,
-      intervalDays: nextInterval,
-      confidenceLevel: newConfidence,
-      priority: newPriority,
-      lastReviewDate: new Date().toISOString(),
-      nextReviewDate: nextDate.toISOString(),
-    };
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + nextInterval);
 
-    const newReviews = reviews.map((r) => (r.id === item.id ? updatedItem : r));
-    saveData(newReviews);
-    setExpandedCard(null);
-    toast.success(`Próxima revisão em ${nextInterval} dia(s)`);
-  };
+      let newPriority: "Alta" | "Média" | "Baixa" = "Baixa";
+      if (newConfidence < 40) newPriority = "Alta";
+      else if (newConfidence < 70) newPriority = "Média";
 
-  // Mocks
-  const generateMocks = () => {
-    if (subjects.length === 0) {
-      toast.error("Você precisa criar matérias primeiro (no Dashboard)");
-      return;
-    }
+      // 1. Atualizar o Item
+      const { error: updateError } = await supabase
+        .from("review_items")
+        .update({
+          interval_days: nextInterval,
+          confidence_level: newConfidence,
+          priority: newPriority,
+          last_review_date: new Date().toISOString(),
+          next_review_date: nextDate.toISOString(),
+        })
+        .eq("id", item.id);
 
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 2);
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
+      if (updateError) throw updateError;
 
-    const mocks: ReviewItem[] = [
-      {
-        id: "mock1",
-        subjectId: subjects[0].id,
-        topicName: "Citologia Básica",
-        intervalDays: 1,
-        confidenceLevel: 30,
-        priority: "Alta",
-        nextReviewDate: yesterday.toISOString(), // Atrasado
-      },
-      {
-        id: "mock2",
-        subjectId: subjects[subjects.length > 1 ? 1 : 0].id,
-        topicName: "Revolução Francesa",
-        intervalDays: 3,
-        confidenceLevel: 60,
-        priority: "Média",
-        nextReviewDate: now.toISOString(), // Hoje
-      },
-      {
-        id: "mock3",
-        subjectId: subjects[0].id,
-        topicName: "Geometria Espacial",
-        intervalDays: 7,
-        confidenceLevel: 85,
-        priority: "Baixa",
-        nextReviewDate: tomorrow.toISOString(), // Futuro
-      },
-    ];
+      // 2. Gravar o Log
+      const { error: logError } = await supabase.from("review_logs").insert([
+        {
+          review_item_id: item.id,
+          user_id: user?.id,
+          perception: perception,
+        },
+      ]);
 
-    saveData([...reviews, ...mocks]);
-    toast.success("Mocks injetados!");
-  };
+      if (logError) throw logError;
+
+      return { nextInterval };
+    },
+    onSuccess: (data, vars) => {
+      // Check if it's the very first review by looking at the current reviews state
+      const hasAnyPriorReview = reviews.some((r) => r.last_review_date !== null);
+      if (!hasAnyPriorReview && !vars.item.last_review_date) {
+        trackEvent("first_review_completed");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["reviewItems"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardData"] });
+      setExpandedCard(null);
+      toast.success(`Revisão registrada! Próxima em ${data.nextInterval} dia(s)`);
+    },
+    onError: (err: any) => toast.error(`Erro ao salvar revisão: ${err.message}`),
+  });
 
   const getPriorityBadge = (p: string) => {
     switch (p) {
@@ -186,7 +251,7 @@ function RevisoesRoute() {
     }
   };
 
-  const ReviewCard = ({ item }: { item: ReviewItem }) => {
+  const ReviewCard = ({ item }: { item: DbReviewItem }) => {
     const isExpanded = expandedCard === item.id;
 
     return (
@@ -196,35 +261,35 @@ function RevisoesRoute() {
             <div className="flex items-center gap-2">
               <div
                 className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getSubjectColor(item.subjectId) }}
+                style={{ backgroundColor: getSubjectColor(item.subject_id) }}
               />
               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {getSubjectName(item.subjectId)}
+                {getSubjectName(item.subject_id)}
               </span>
             </div>
             {getPriorityBadge(item.priority)}
           </div>
 
-          <h3 className="text-lg font-bold mb-2">{item.topicName}</h3>
+          <h3 className="text-lg font-bold mb-2">{item.topic_name}</h3>
 
           <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
             <div className="flex items-center gap-1" title="Confiança">
               <Gauge
                 size={14}
                 className={
-                  item.confidenceLevel > 70
+                  item.confidence_level > 70
                     ? "text-green-500"
-                    : item.confidenceLevel < 40
+                    : item.confidence_level < 40
                       ? "text-red-500"
                       : "text-orange-500"
                 }
               />
-              {Math.floor(item.confidenceLevel)}%
+              {Math.floor(item.confidence_level)}%
             </div>
-            {item.lastReviewDate && (
+            {item.last_review_date && (
               <div className="flex items-center gap-1" title="Última Revisão">
                 <History size={14} />
-                {new Date(item.lastReviewDate).toLocaleDateString("pt-BR", {
+                {new Date(item.last_review_date).toLocaleDateString("pt-BR", {
                   day: "2-digit",
                   month: "2-digit",
                 })}
@@ -232,7 +297,7 @@ function RevisoesRoute() {
             )}
             <div className="flex items-center gap-1" title="Próxima Revisão">
               <Clock size={14} className="text-primary" />
-              {new Date(item.nextReviewDate).toLocaleDateString("pt-BR", {
+              {new Date(item.next_review_date).toLocaleDateString("pt-BR", {
                 day: "2-digit",
                 month: "2-digit",
               })}
@@ -248,21 +313,24 @@ function RevisoesRoute() {
                 <Button
                   variant="outline"
                   className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20"
-                  onClick={() => handleReview(item, "Difícil")}
+                  onClick={() => handleReviewMutation.mutate({ item, perception: "Difícil" })}
+                  disabled={handleReviewMutation.isPending}
                 >
                   Difícil
                 </Button>
                 <Button
                   variant="outline"
                   className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 border-orange-500/20"
-                  onClick={() => handleReview(item, "Médio")}
+                  onClick={() => handleReviewMutation.mutate({ item, perception: "Médio" })}
+                  disabled={handleReviewMutation.isPending}
                 >
                   Médio
                 </Button>
                 <Button
                   variant="outline"
                   className="bg-green-500/10 hover:bg-green-500/20 text-green-500 border-green-500/20"
-                  onClick={() => handleReview(item, "Fácil")}
+                  onClick={() => handleReviewMutation.mutate({ item, perception: "Fácil" })}
+                  disabled={handleReviewMutation.isPending}
                 >
                   Fácil
                 </Button>
@@ -292,8 +360,8 @@ function RevisoesRoute() {
             O motor que consolida sua memória a longo prazo.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={generateMocks} className="border-dashed">
-          <Plus size={16} className="mr-2" /> Gerar Mocks
+        <Button onClick={() => setIsAddModalOpen(true)} className="shadow-glow font-bold">
+          <Plus size={16} className="mr-2" /> Nova Revisão
         </Button>
       </div>
 
@@ -318,7 +386,11 @@ function RevisoesRoute() {
 
         <div className="mt-6">
           <TabsContent value="atrasadas">
-            {lateReviews.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground animate-pulse">
+                Carregando revisões...
+              </div>
+            ) : lateReviews.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <BrainCircuit size={48} className="mx-auto mb-4 opacity-20" />
                 <p>Nenhuma revisão atrasada! Excelente.</p>
@@ -329,7 +401,11 @@ function RevisoesRoute() {
           </TabsContent>
 
           <TabsContent value="hoje">
-            {todayReviews.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground animate-pulse">
+                Carregando revisões...
+              </div>
+            ) : todayReviews.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <CheckCircle2 size={48} className="mx-auto mb-4 opacity-20" />
                 <p>Tudo limpo por hoje. Descanse ou avance na teoria.</p>
@@ -340,7 +416,11 @@ function RevisoesRoute() {
           </TabsContent>
 
           <TabsContent value="proximas">
-            {futureReviews.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground animate-pulse">
+                Carregando revisões...
+              </div>
+            ) : futureReviews.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <CalendarDays size={48} className="mx-auto mb-4 opacity-20" />
                 <p>O futuro está vazio. Continue estudando!</p>
@@ -351,6 +431,57 @@ function RevisoesRoute() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Add Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Agendar Revisão Manual</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="subject">Matéria</Label>
+              <Select value={newReviewSubject} onValueChange={setNewReviewSubject}>
+                <SelectTrigger id="subject">
+                  <SelectValue placeholder="Selecione a matéria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                  {subjects.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      Cadastre matérias no edital primeiro
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="topic">Tópico</Label>
+              <Input
+                id="topic"
+                placeholder="Ex: Revolução Francesa"
+                value={newReviewTopic}
+                onChange={(e) => setNewReviewTopic(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => addReviewMutation.mutate()}
+              disabled={addReviewMutation.isPending || !newReviewSubject || !newReviewTopic}
+            >
+              {addReviewMutation.isPending ? "Agendando..." : "Agendar para Hoje"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

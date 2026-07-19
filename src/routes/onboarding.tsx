@@ -18,6 +18,7 @@ import {
 import { saveOnboardingData, OnboardingData } from "@/lib/onboarding-store";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingWizard,
@@ -35,6 +36,10 @@ function OnboardingWizard() {
       navigate({ to: "/login", replace: true });
     }
   }, [user, isLoading, navigate]);
+
+  useEffect(() => {
+    trackEvent("onboarding_started");
+  }, []);
 
   // Form State
   const [data, setData] = useState<OnboardingData>({
@@ -63,6 +68,7 @@ function OnboardingWizard() {
         try {
           const success = await saveOnboardingData(user.id, data);
           if (success) {
+            trackEvent("onboarding_completed");
             navigate({ to: "/app", replace: true });
           } else {
             toast.error("Ocorreu um erro ao salvar seu perfil. Tente novamente.");

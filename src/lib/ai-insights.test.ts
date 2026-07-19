@@ -15,6 +15,7 @@ describe("generateDailyInsight", () => {
 
     const lateReviews: ReviewItem[] = Array.from({ length: 6 }).map((_, i) => ({
       id: `rev-${i}`,
+      userId: "user-1",
       subjectId: "sub-1",
       topicName: `Topic ${i}`,
       intervalDays: 1,
@@ -22,6 +23,7 @@ describe("generateDailyInsight", () => {
       priority: "Alta",
       lastReviewDate: undefined,
       nextReviewDate: yesterday.toISOString(),
+      createdAt: new Date(),
     }));
 
     const subjects: Subject[] = [
@@ -39,13 +41,13 @@ describe("generateDailyInsight", () => {
       [
         {
           id: "sess-1",
+          userId: "user-1",
           subjectId: "sub-1",
-          topic: "x",
+          startTime: today,
           durationMinutes: 30,
-          type: "teoria",
+          notes: JSON.stringify({ type: "teoria", topic: "x" }),
           focusScore: 100,
-          goalId: "g",
-          createdAt: today.toISOString(),
+          createdAt: today,
         },
       ],
       lateReviews,
@@ -63,13 +65,13 @@ describe("generateDailyInsight", () => {
     const history: StudySession[] = [
       {
         id: "sess-1",
+        userId: "user-1",
         subjectId: "sub-1",
-        topic: "x",
+        startTime: fourDaysAgo,
         durationMinutes: 60,
-        type: "teoria",
+        notes: JSON.stringify({ type: "teoria", topic: "x" }),
         focusScore: 100,
-        goalId: "g",
-        createdAt: fourDaysAgo.toISOString(),
+        createdAt: fourDaysAgo,
       },
     ];
 
@@ -82,23 +84,23 @@ describe("generateDailyInsight", () => {
     const history: StudySession[] = [
       {
         id: "sess-1",
+        userId: "user-1",
         subjectId: "sub-1",
-        topic: "x",
+        startTime: today,
         durationMinutes: 80,
-        type: "teoria",
+        notes: JSON.stringify({ type: "teoria", topic: "x" }),
         focusScore: 100,
-        goalId: "g",
-        createdAt: today.toISOString(),
+        createdAt: today,
       },
       {
         id: "sess-2",
+        userId: "user-1",
         subjectId: "sub-1",
-        topic: "y",
+        startTime: today,
         durationMinutes: 20,
-        type: "questoes",
+        notes: JSON.stringify({ type: "questoes", topic: "y" }),
         focusScore: 100,
-        goalId: "g",
-        createdAt: today.toISOString(),
+        createdAt: today,
       },
     ];
 

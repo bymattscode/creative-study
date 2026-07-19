@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,7 +84,10 @@ function MateriasRoute() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      if (!variables.id && subjects.length === 0) {
+        trackEvent("first_subject_created");
+      }
       queryClient.invalidateQueries({ queryKey: ["subjects", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["dashboardData", user?.id] });
       setIsSubjectDialogOpen(false);

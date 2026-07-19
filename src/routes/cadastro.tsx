@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/cadastro")({
   component: CadastroRoute,
@@ -45,6 +46,7 @@ function CadastroRoute() {
       toast.error(error.message);
       setLoading(false);
     } else {
+      trackEvent("signup_completed");
       toast.success("Conta criada com sucesso!");
       // O user mudará e o useEffect redirecionará automaticamente
     }

@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/app/estudo")({
   component: EstudoRoute,
@@ -117,6 +118,9 @@ function EstudoRoute() {
       toast.error("Por favor, selecione uma matéria primeiro.");
       return;
     }
+    if (!isActive && recentHistory.length === 0) {
+      trackEvent("first_study_session_started");
+    }
     setIsActive(!isActive);
   };
 
@@ -189,6 +193,10 @@ function EstudoRoute() {
     },
     onSuccess: (data, vars) => {
       if (!data) return; // Se foi < 1 min, retorna null
+
+      if (recentHistory.length === 0) {
+        trackEvent("first_study_session_completed");
+      }
 
       queryClient.invalidateQueries({ queryKey: ["recentStudySessions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardData"] });

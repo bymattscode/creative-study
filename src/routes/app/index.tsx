@@ -22,6 +22,7 @@ import {
   ArrowRight,
   BookOpen,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/app/")({
   component: DashboardRoute,
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/app/")({
 
 function DashboardRoute() {
   const { user } = useAuth();
+
+  useEffect(() => {
+    trackEvent("dashboard_viewed");
+  }, []);
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["profile", user?.id],

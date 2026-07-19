@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/login")({
   component: LoginRoute,
@@ -39,6 +40,7 @@ function LoginRoute() {
       toast.error(error.message);
       setLoading(false);
     } else {
+      trackEvent("login_completed");
       toast.success("Login realizado com sucesso!");
       // O useEffect acima irá redirecionar automaticamente
     }
