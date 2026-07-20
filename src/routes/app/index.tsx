@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { UserProfile, Goal, Subject, StudySession, ReviewItem } from "@/types/models";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { generateDailyInsight } from "@/lib/ai-insights";
@@ -31,6 +31,7 @@ export const Route = createFileRoute("/app/")({
 
 function DashboardRoute() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     trackEvent("dashboard_viewed");
@@ -156,6 +157,49 @@ function DashboardRoute() {
       return data || [];
     },
     enabled: !!weeklyPlan,
+  });
+
+  const toggleMissionMutation = useMutation({
+    mutationFn: async (mission: any) => {
+      const newStatus = !mission.completed;
+      
+      // Update plan_item
+      await supabase.from("plan_items").update({ completed: newStatus }).eq("id", mission.id);
+
+      if (newStatus) {
+        // Create a study session
+        await supabase.from("study_sessions").insert({
+          user_id: user?.id,
+          subject_id: mission.subject_id,
+          duration_minutes: mission.duration_minutes,
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + mission.duration_minutes * 60000).toISOString(),
+          focus_score: 100,
+        });
+      } else {
+        // Delete a matching study session for today
+        const today = new Date();
+        const startOfDay = new Date(today.setHours(0,0,0,0)).toISOString();
+        const endOfDay = new Date(today.setHours(23,59,59,999)).toISOString();
+        
+        const { data } = await supabase.from("study_sessions")
+          .select("id")
+          .eq("user_id", user?.id)
+          .eq("subject_id", mission.subject_id)
+          .eq("duration_minutes", mission.duration_minutes)
+          .gte("created_at", startOfDay)
+          .lte("created_at", endOfDay)
+          .limit(1);
+          
+        if (data && data.length > 0) {
+          await supabase.from("study_sessions").delete().eq("id", data[0].id);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todayMissions"] });
+      queryClient.invalidateQueries({ queryKey: ["history"] }); // refresh dashboard hours
+    }
   });
 
   const insight = useMemo(
@@ -464,7 +508,7 @@ function DashboardRoute() {
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader className="border-b border-border/50 pb-4">
               <CardTitle className="flex items-center justify-between font-display text-lg">
-                Missões de Hoje
+                Matérias de Hoje
                 <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-bold">
                   {todayMissions.filter(m => !m.completed).length} pendentes
                 </span>
@@ -491,8 +535,12 @@ function DashboardRoute() {
                     const subject = subjects.find(s => s.id === mission.subject_id);
                     
                     return (
-                      <div key={mission.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors group ${mission.completed ? "bg-surface opacity-60 border-transparent" : "bg-background border-border hover:border-primary/50"}`}>
-                        <div className={`mt-1 h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full border-2 ${mission.completed ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}>
+                      <div 
+                        key={mission.id} 
+                        onClick={() => toggleMissionMutation.mutate(mission)}
+                        className={`flex items-start gap-3 p-3 rounded-lg border transition-colors group cursor-pointer ${mission.completed ? "bg-surface opacity-60 border-transparent" : "bg-background border-border hover:border-primary/50"}`}
+                      >
+                        <div className={`mt-1 h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${mission.completed ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground group-hover:border-primary"}`}>
                           {mission.completed && <CheckCircle2 size={12} />}
                         </div>
                         <div className="flex flex-col flex-1">
