@@ -165,20 +165,31 @@ function ConfiguracoesRoute() {
 
   const updateGoalMutation = useMutation({
     mutationFn: async () => {
-      if (!goal) return;
-      const { error } = await supabase
-        .from("goals")
-        .update({
-          title: localGoal.title,
-          target_date: localGoal.targetDate || null,
-        })
-        .eq("id", goal.id);
-      if (error) throw error;
+      if (!goal) {
+        const { error } = await supabase
+          .from("goals")
+          .insert({
+            user_id: user?.id,
+            title: localGoal.title,
+            target_date: localGoal.targetDate || null,
+            is_active: true
+          });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("goals")
+          .update({
+            title: localGoal.title,
+            target_date: localGoal.targetDate || null,
+          })
+          .eq("id", goal.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Objetivo atualizado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["currentGoal", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardData", user?.id] }); // refresh dashboard
+      queryClient.invalidateQueries({ queryKey: ["currentGoal"] });
+      queryClient.invalidateQueries({ queryKey: ["goal"] }); // refresh dashboard
     },
     onError: (err) => {
       toast.error("Erro ao atualizar objetivo: " + err.message);
@@ -357,7 +368,7 @@ function ConfiguracoesRoute() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>
-                    {localProfile.studentType === "universidade" ? "Nome do Semestre" :
+                    {localProfile.studentType === "universidade" ? "Nome/Número do Semestre (Ex: 4º Semestre)" :
                      localProfile.studentType === "vestibular" ? "Nome do Vestibular" :
                      localProfile.studentType === "concurso" ? "Nome do Concurso" :
                      "Nome da Prova/Objetivo"}
