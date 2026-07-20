@@ -22,6 +22,7 @@ import { Route as AppMateriasRouteImport } from './routes/app/materias'
 import { Route as AppEstudoRouteImport } from './routes/app/estudo'
 import { Route as AppDesempenhoRouteImport } from './routes/app/desempenho'
 import { Route as AppConfiguracoesRouteImport } from './routes/app/configuracoes'
+import { Route as AppCalendarioRouteImport } from './routes/app/calendario'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -88,6 +89,11 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCalendarioRoute = AppCalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/calendario': typeof AppCalendarioRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/estudo': typeof AppEstudoRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/calendario': typeof AppCalendarioRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/estudo': typeof AppEstudoRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/calendario': typeof AppCalendarioRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/estudo': typeof AppEstudoRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/onboarding'
+    | '/app/calendario'
     | '/app/configuracoes'
     | '/app/desempenho'
     | '/app/estudo'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/onboarding'
+    | '/app/calendario'
     | '/app/configuracoes'
     | '/app/desempenho'
     | '/app/estudo'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/onboarding'
+    | '/app/calendario'
     | '/app/configuracoes'
     | '/app/desempenho'
     | '/app/estudo'
@@ -282,10 +294,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/calendario': {
+      id: '/app/calendario'
+      path: '/calendario'
+      fullPath: '/app/calendario'
+      preLoaderRoute: typeof AppCalendarioRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppCalendarioRoute: typeof AppCalendarioRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
   AppEstudoRoute: typeof AppEstudoRoute
@@ -297,6 +317,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCalendarioRoute: AppCalendarioRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
   AppEstudoRoute: AppEstudoRoute,

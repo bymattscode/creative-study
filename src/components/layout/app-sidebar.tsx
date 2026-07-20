@@ -14,6 +14,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BrainCircuit,
   Calendar,
+  CalendarDays,
   BookOpen,
   RefreshCcw,
   Timer,
@@ -29,6 +30,7 @@ import { useAuth } from "@/contexts/auth";
 // Itens do menu principal
 const mainNavItems = [
   { title: "Início", url: "/app", icon: BrainCircuit, exact: true },
+  { title: "Calendário", url: "/app/calendario", icon: CalendarDays },
   { title: "Plano Semanal", url: "/app/plano", icon: Calendar },
   { title: "Matérias", url: "/app/materias", icon: BookOpen },
   { title: "Revisões", url: "/app/revisoes", icon: RefreshCcw },
