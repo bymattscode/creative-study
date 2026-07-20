@@ -51,8 +51,81 @@ function ConfiguracoesRoute() {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
 
-  // Profile and Prefs still using SyncStorage (for now, or can be migrated later)
-  const [profile, setProfile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
+  const [localProfile, setLocalProfile] = useState({ name: "", studentType: "" });
+  const [localPrefs, setLocalPrefs] = useState({ hoursPerDay: 4 });
+
+  const { data: dbProfile } = useQuery({
+    queryKey: ["userProfile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: dbPrefs } = useQuery({
+    queryKey: ["userPrefs", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("onboarding_preferences")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  useEffect(() => {
+    if (dbProfile) {
+      setLocalProfile({
+        name: dbProfile.name || "",
+        studentType: dbProfile.student_type || "",
+      });
+    }
+    if (dbPrefs) {
+      setLocalPrefs({
+        hoursPerDay: dbPrefs.hours_per_day || 4,
+      });
+    }
+  }, [dbProfile, dbPrefs]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
+      if (dbProfile) {
+        await supabase
+          .from("user_profiles")
+          .update({
+            name: localProfile.name,
+            student_type: localProfile.studentType,
+          })
+          .eq("id", dbProfile.id);
+      }
+      if (dbPrefs) {
+        await supabase
+          .from("onboarding_preferences")
+          .update({
+            hours_per_day: localPrefs.hoursPerDay,
+          })
+          .eq("id", dbPrefs.id);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Perfil atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["userPrefs", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+    },
+    onError: (err) => {
+      toast.error("Erro ao atualizar perfil: " + err.message);
+    }
+  });
 
   // Goal data fetching
   const { data: goal } = useQuery({
@@ -105,9 +178,7 @@ function ConfiguracoesRoute() {
 
   // Handlers
   const handleSaveProfile = () => {
-    if (profile) {
-      toast.success("Perfil atualizado com sucesso!");
-    }
+    updateProfileMutation.mutate();
   };
 
   const handleSaveGoal = () => {
@@ -165,20 +236,16 @@ function ConfiguracoesRoute() {
                 <div className="space-y-2">
                   <Label>Nome Completo</Label>
                   <Input
-                    value={profile?.name || ""}
-                    onChange={(e) =>
-                      setProfile((prev) => (prev ? { ...prev, name: e.target.value } : null))
-                    }
+                    value={localProfile.name}
+                    onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
                     className="bg-background"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo de Estudante</Label>
                   <Select
-                    value={profile?.studentType || ""}
-                    onValueChange={(v) =>
-                      setProfile((prev) => (prev ? { ...prev, studentType: v as any } : null))
-                    }
+                    value={localProfile.studentType}
+                    onValueChange={(v) => setLocalProfile({ ...localProfile, studentType: v })}
                   >
                     <SelectTrigger className="bg-background">
                       <SelectValue placeholder="Selecione..." />
@@ -195,20 +262,8 @@ function ConfiguracoesRoute() {
                   <Label>Disponibilidade (Horas/Dia)</Label>
                   <Input
                     type="number"
-                    value={(profile as any)?.preferences?.hoursPerDay || ""}
-                    onChange={(e) =>
-                      setProfile((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              preferences: {
-                                ...(prev as any).preferences,
-                                hoursPerDay: Number(e.target.value),
-                              },
-                            }
-                          : null,
-                      )
-                    }
+                    value={localPrefs.hoursPerDay}
+                    onChange={(e) => setLocalPrefs({ ...localPrefs, hoursPerDay: Number(e.target.value) })}
                     className="bg-background"
                   />
                 </div>
