@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,14 @@ export function EditExamDialog({ exam, triggerClassName = "text-muted-foreground
     : (rawDate ? new Date(rawDate + "T12:00:00Z").toISOString().split('T')[0] : '');
 
   const [targetDate, setTargetDate] = useState(initialDate);
+
+  useEffect(() => {
+    let parsed = { name: exam.title, subjectId: "none" };
+    try { parsed = JSON.parse(exam.title); } catch(e) {}
+    setName(parsed.name);
+    setSubjectId(parsed.subjectId);
+    setTargetDate(initialDate);
+  }, [exam.title, initialDate]);
 
   const updateExamMutation = useMutation({
     mutationFn: async ({ id, title, targetDate }: { id: string; title: string; targetDate: string }) => {
