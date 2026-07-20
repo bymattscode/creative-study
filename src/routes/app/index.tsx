@@ -44,6 +44,7 @@ function DashboardRoute() {
         id: data.id,
         userId: data.user_id,
         name: data.name,
+        studentType: data.student_type,
         subscriptionTier: data.subscription_tier,
       } as UserProfile : null;
     },
@@ -548,7 +549,12 @@ function DashboardRoute() {
         <div className="space-y-6 md:col-span-1">
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader className="border-b border-border/50 pb-4">
-              <CardTitle className="font-display text-lg">Progresso no Edital</CardTitle>
+              <CardTitle className="font-display text-lg">
+                {profile?.studentType === "universidade" ? "Progresso no Semestre" :
+                 profile?.studentType === "vestibular" ? "Progresso no Vestibular" :
+                 profile?.studentType === "outro" ? "Progresso Geral" :
+                 "Progresso no Edital"}
+              </CardTitle>
               <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 space-y-5">
