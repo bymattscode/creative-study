@@ -31,8 +31,14 @@ function CalendarioRoute() {
         .order("target_date", { ascending: true });
       if (error) throw error;
       
-      // Filtrar apenas as que têm data e estão no futuro (ou não muito no passado)
-      return (data as any[]).filter(g => g.target_date).map(g => ({
+      // Filtrar apenas as que têm data válida
+      return (data as any[])
+        .filter(g => {
+          if (!g.target_date) return false;
+          const d = new Date(g.target_date + "T12:00:00Z");
+          return !isNaN(d.getTime());
+        })
+        .map(g => ({
         id: g.id,
         title: g.title,
         targetDate: new Date(g.target_date + "T12:00:00Z"),
