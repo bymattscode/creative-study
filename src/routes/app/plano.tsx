@@ -433,8 +433,9 @@ function PlanoSemanalRoute() {
       if (!stats[name]) {
         stats[name] = { name, color, duration: 0 };
       }
-      stats[name].duration += item.duration_minutes;
-      totalMinutes += item.duration_minutes;
+      const duration = item.duration_minutes || 0;
+      stats[name].duration += duration;
+      totalMinutes += duration;
     });
     return {
       totalMinutes,
