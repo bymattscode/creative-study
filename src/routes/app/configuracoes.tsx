@@ -52,7 +52,7 @@ function ConfiguracoesRoute() {
   const queryClient = useQueryClient();
 
   const [localProfile, setLocalProfile] = useState({ name: "", studentType: "" });
-  const [localPrefs, setLocalPrefs] = useState({ hoursPerDay: 4 });
+  const [localPrefs, setLocalPrefs] = useState({ minutesPerDay: 240, studyDays: [1,2,3,4,5] as number[] });
 
   const { data: dbProfile } = useQuery({
     queryKey: ["userProfile", user?.id],
@@ -91,7 +91,8 @@ function ConfiguracoesRoute() {
     }
     if (dbPrefs) {
       setLocalPrefs({
-        hoursPerDay: dbPrefs.hours_per_day || 4,
+        minutesPerDay: dbPrefs.minutes_per_day || 240,
+        studyDays: dbPrefs.study_days || [1,2,3,4,5],
       });
     }
   }, [dbProfile, dbPrefs]);
@@ -111,7 +112,8 @@ function ConfiguracoesRoute() {
         await supabase
           .from("onboarding_preferences")
           .update({
-            hours_per_day: localPrefs.hoursPerDay,
+            minutes_per_day: localPrefs.minutesPerDay,
+            study_days: localPrefs.studyDays,
           })
           .eq("id", dbPrefs.id);
       }
@@ -258,13 +260,55 @@ function ConfiguracoesRoute() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Disponibilidade (Horas/Dia)</Label>
-                  <Input
-                    type="number"
-                    value={localPrefs.hoursPerDay}
-                    onChange={(e) => setLocalPrefs({ ...localPrefs, hoursPerDay: Number(e.target.value) })}
-                    className="bg-background"
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Dias da Semana</Label>
+                  <div className="flex gap-2">
+                    {[
+                      { id: 0, label: "D" },
+                      { id: 1, label: "S" },
+                      { id: 2, label: "T" },
+                      { id: 3, label: "Q" },
+                      { id: 4, label: "Q" },
+                      { id: 5, label: "S" },
+                      { id: 6, label: "S" },
+                    ].map((day) => {
+                      const isSelected = localPrefs.studyDays.includes(day.id);
+                      return (
+                        <button
+                          key={day.id}
+                          onClick={() => {
+                            const newDays = isSelected
+                              ? localPrefs.studyDays.filter((d) => d !== day.id)
+                              : [...localPrefs.studyDays, day.id].sort();
+                            setLocalPrefs({ ...localPrefs, studyDays: newDays });
+                          }}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex justify-between items-end mb-2">
+                    <Label>Tempo de Estudo por Dia</Label>
+                    <span className="text-xl font-bold text-primary">
+                      {Math.floor(localPrefs.minutesPerDay / 60) > 0 ? `${Math.floor(localPrefs.minutesPerDay / 60)}h ` : ""}
+                      {localPrefs.minutesPerDay % 60 > 0 ? `${localPrefs.minutesPerDay % 60}m` : ""}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[localPrefs.minutesPerDay]}
+                    min={15}
+                    max={720}
+                    step={15}
+                    onValueChange={(v) => setLocalPrefs({ ...localPrefs, minutesPerDay: v[0] })}
+                    className="w-full"
                   />
                 </div>
               </div>

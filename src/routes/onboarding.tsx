@@ -47,7 +47,8 @@ function OnboardingWizard() {
     studentType: "",
     goalName: "",
     goalDate: "",
-    hoursPerDay: 4,
+    minutesPerDay: 240,
+    studyDays: [1, 2, 3, 4, 5],
     preferredTime: "",
     subjects: [{ name: "", difficulty: "Médio" }],
   });
@@ -235,17 +236,55 @@ function OnboardingWizard() {
               </div>
 
               <div className="space-y-8">
+                <div className="space-y-3">
+                  <Label>Dias da Semana</Label>
+                  <div className="flex justify-between gap-2">
+                    {[
+                      { id: 0, label: "D" },
+                      { id: 1, label: "S" },
+                      { id: 2, label: "T" },
+                      { id: 3, label: "Q" },
+                      { id: 4, label: "Q" },
+                      { id: 5, label: "S" },
+                      { id: 6, label: "S" },
+                    ].map((day) => {
+                      const isSelected = data.studyDays.includes(day.id);
+                      return (
+                        <button
+                          key={day.id}
+                          onClick={() => {
+                            const newDays = isSelected
+                              ? data.studyDays.filter((d) => d !== day.id)
+                              : [...data.studyDays, day.id].sort();
+                            setData({ ...data, studyDays: newDays });
+                          }}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="space-y-6">
                   <div className="flex justify-between items-end">
-                    <Label>Horas de Estudo por Dia</Label>
-                    <span className="text-3xl font-bold text-primary">{data.hoursPerDay}h</span>
+                    <Label>Tempo de Estudo por Dia</Label>
+                    <span className="text-3xl font-bold text-primary">
+                      {Math.floor(data.minutesPerDay / 60) > 0 ? `${Math.floor(data.minutesPerDay / 60)}h ` : ""}
+                      {data.minutesPerDay % 60 > 0 ? `${data.minutesPerDay % 60}m` : ""}
+                    </span>
                   </div>
                   <Slider
-                    value={[data.hoursPerDay]}
-                    min={1}
-                    max={12}
-                    step={1}
-                    onValueChange={(v) => setData({ ...data, hoursPerDay: v[0] })}
+                    value={[data.minutesPerDay]}
+                    min={15}
+                    max={720}
+                    step={15}
+                    onValueChange={(v) => setData({ ...data, minutesPerDay: v[0] })}
                     className="w-full"
                   />
                 </div>
@@ -268,7 +307,7 @@ function OnboardingWizard() {
                 <Button
                   className="w-full h-12 text-lg mt-4"
                   onClick={nextStep}
-                  disabled={!data.preferredTime}
+                  disabled={!data.preferredTime || data.studyDays.length === 0}
                 >
                   Continuar <ChevronRight size={20} className="ml-2" />
                 </Button>

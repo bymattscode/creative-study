@@ -33,7 +33,9 @@ export interface OnboardingPreference {
   pomodoroLength: number; // Em minutos, padrão 25
   shortBreakLength: number; // Em minutos, padrão 5
   longBreakLength: number; // Em minutos, padrão 15
-  hoursPerDay: number;
+  hoursPerDay?: number; // legacy
+  minutesPerDay: number;
+  studyDays: number[];
   preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
   createdAt: Date;
   updatedAt: Date;

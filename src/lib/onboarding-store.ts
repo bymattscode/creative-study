@@ -6,7 +6,8 @@ export interface OnboardingData {
   studentType: string;
   goalName: string;
   goalDate: string | null; // ISO string
-  hoursPerDay: number;
+  minutesPerDay: number;
+  studyDays: number[];
   preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
   subjects: Array<{ name: string; difficulty: "Fácil" | "Médio" | "Difícil" }>;
 }
@@ -51,7 +52,8 @@ export const saveOnboardingData = async (userId: string, data: OnboardingData) =
         pomodoro_length: 25,
         short_break_length: 5,
         long_break_length: 15,
-        hours_per_day: data.hoursPerDay,
+        minutes_per_day: data.minutesPerDay,
+        study_days: data.studyDays,
         preferred_time: data.preferredTime,
       }, { onConflict: "user_id" });
       
