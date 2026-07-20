@@ -46,7 +46,7 @@ function EditExamDialog({ exam, subjects, updateMutation }: any) {
   
   const [name, setName] = useState(parsed.name);
   const [subjectId, setSubjectId] = useState(parsed.subjectId);
-  const [targetDate, setTargetDate] = useState(exam.target_date ? new Date(exam.target_date + "T12:00:00Z").toISOString().split('T')[0] : '');
+  const [targetDate, setTargetDate] = useState((exam as any).target_date ? new Date((exam as any).target_date + "T12:00:00Z").toISOString().split('T')[0] : '');
 
   const handleSave = () => {
     updateMutation.mutate({
@@ -592,7 +592,7 @@ function ConfiguracoesRoute() {
                         <div className="flex flex-col">
                           <span className="font-bold text-sm">{parsed.name}</span>
                           <span className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                            <span>{exam.target_date ? new Date(exam.target_date + "T12:00:00Z").toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''}</span>
+                            <span>{(exam as any).target_date ? new Date((exam as any).target_date + "T12:00:00Z").toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''}</span>
                             {subjectName !== "none" && (
                               <>
                                 <span className="opacity-50">•</span>

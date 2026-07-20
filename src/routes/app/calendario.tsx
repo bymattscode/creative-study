@@ -180,7 +180,7 @@ function CalendarioRoute() {
                       </div>
                       <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border flex items-center justify-center gap-2">
                         <div className="flex flex-col items-center">
-                          <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(mainGoal.targetDate)}</span>
+                          <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(mainGoal.targetDate!)}</span>
                           <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                         </div>
                         <button 
@@ -228,7 +228,7 @@ function CalendarioRoute() {
                             </div>
                             <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border flex items-center justify-center gap-2">
                               <div className="flex flex-col items-center">
-                                <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(exam.targetDate)}</span>
+                                <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(exam.targetDate!)}</span>
                                 <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                               </div>
                               <button 
