@@ -58,7 +58,7 @@ function DashboardRoute() {
     queryKey: ["goal", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("goals").select("*").eq("user_id", user.id).eq("is_active", true).single();
+      const { data } = await supabase.from("goals").select("*").eq("user_id", user.id).eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data ? {
         id: data.id,
         title: data.title,
@@ -80,8 +80,7 @@ function DashboardRoute() {
         .gte("target_date", new Date().toISOString().split('T')[0])
         .order("target_date", { ascending: true })
         .limit(1)
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
+        .maybeSingle();
       return data || null;
     },
     enabled: !!user,

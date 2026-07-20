@@ -145,8 +145,9 @@ function ConfiguracoesRoute() {
         .select("*")
         .eq("user_id", user?.id)
         .eq("is_active", true)
-        .single();
-      if (error && error.code !== "PGRST116") throw error; // PGRST116 is not found
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       return data;
     },
     enabled: !!user?.id,

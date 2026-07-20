@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -149,8 +149,11 @@ function CalendarioRoute() {
           <Card className="bg-surface-elevated/50 border-dashed border-border">
             <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <MapPin size={40} className="mb-2 opacity-50" />
-              <p>Nenhuma prova agendada.</p>
-              <p className="text-sm">Vá em Configurações e adicione sua Meta Principal ou Provas.</p>
+              <p className="font-bold text-foreground">Nenhuma prova agendada.</p>
+              <p className="text-sm mb-4">Cadastre suas próximas provas nas configurações para vê-las aqui.</p>
+              <Link to="/app/configuracoes" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-sm">
+                Cadastrar Prova
+              </Link>
             </CardContent>
           </Card>
         ) : (
