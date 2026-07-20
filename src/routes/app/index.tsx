@@ -521,6 +521,7 @@ function DashboardRoute() {
                     <input 
                       type="date" 
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
                       onChange={(e) => {
                         if(e.target.value) {
                            updateGoalDateMutation.mutate({ id: goal.id, newDate: e.target.value });
@@ -569,6 +570,7 @@ function DashboardRoute() {
                   <input 
                     type="date" 
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
                     onChange={(e) => {
                       if(e.target.value) {
                          updateExamDateMutation.mutate({ id: nextExam.id, newDate: e.target.value });

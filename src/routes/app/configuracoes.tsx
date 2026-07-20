@@ -528,6 +528,7 @@ function ConfiguracoesRoute() {
                               <input 
                                 type="date" 
                                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
                                 onChange={(e) => {
                                   if(e.target.value) {
                                      updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
