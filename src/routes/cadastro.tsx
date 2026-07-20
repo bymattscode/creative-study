@@ -29,23 +29,23 @@ function CadastroRoute() {
   }, [user, isLoading, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
         }
-      }
-    });
+      });
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-    } else {
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
       trackEvent("signup_completed");
       
       if (!data.session) {
@@ -56,6 +56,9 @@ function CadastroRoute() {
         toast.success("Conta criada com sucesso!");
         // O user mudará e o useEffect redirecionará automaticamente
       }
+    } catch (err: any) {
+      toast.error(err.message || "Erro de conexão ao tentar criar conta. Verifique sua internet ou as chaves do Supabase.");
+      setLoading(false);
     }
   };
 

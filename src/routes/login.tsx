@@ -31,18 +31,23 @@ function LoginRoute() {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+      } else {
+        trackEvent("login_completed");
+        toast.success("Login realizado com sucesso!");
+        // O useEffect acima irá redirecionar automaticamente
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro de conexão. Verifique sua internet ou as chaves do Supabase.");
       setLoading(false);
-    } else {
-      trackEvent("login_completed");
-      toast.success("Login realizado com sucesso!");
-      // O useEffect acima irá redirecionar automaticamente
     }
   };
 
