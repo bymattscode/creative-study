@@ -285,13 +285,26 @@ function ConfiguracoesRoute() {
   const handleResetData = async () => {
     if (
       window.confirm(
-        "ATENÇÃO: Você tem certeza que deseja APAGAR TODO O HISTÓRICO? Essa ação não pode ser desfeita.",
+        "ATENÇÃO: Você tem certeza que deseja APAGAR TODO O SEU HISTÓRICO E PROGRESSO DE ESTUDO? Essa ação não pode ser desfeita.",
       )
     ) {
-      localStorage.clear();
-      await signOut();
-      toast.success("Todos os dados foram resetados.");
-      navigate({ to: "/login" });
+      toast.loading("Limpando dados...", { id: "reset" });
+      try {
+        // Clear study sessions (which zeroes progress)
+        await supabase.from("study_sessions").delete().eq("user_id", user?.id);
+        
+        // Clear current plan
+        await supabase.from("weekly_plans").delete().eq("user_id", user?.id);
+        
+        // Clear reviews
+        await supabase.from("review_items").delete().eq("user_id", user?.id);
+        
+        toast.success("Seu progresso e histórico foram zerados com sucesso!", { id: "reset" });
+        queryClient.clear();
+        navigate({ to: "/app" });
+      } catch (err: any) {
+        toast.error("Erro ao resetar dados: " + err.message, { id: "reset" });
+      }
     }
   };
 
