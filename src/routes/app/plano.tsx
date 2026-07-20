@@ -298,18 +298,20 @@ function PlanoSemanalRoute() {
       let subjectIdx = 0;
 
       WEEK_DAYS.forEach((day, dIdx) => {
+        const globalDayId = dIdx === 6 ? 0 : dIdx + 1; // WEEK_DAYS começa na Segunda (0) e vai até Domingo (6). Global começa no Domingo (0).
         let minutes = 0;
         // fallback to old hours_per_day if daily_study_hours is empty
-        if (preferences?.daily_study_hours && preferences.daily_study_hours[dIdx.toString()]) {
-          minutes = preferences.daily_study_hours[dIdx.toString()];
+        if (preferences?.daily_study_hours && preferences.daily_study_hours[globalDayId.toString()]) {
+          minutes = preferences.daily_study_hours[globalDayId.toString()];
         } else {
           let fallbackHours = preferences?.minutes_per_day ? Math.floor(preferences.minutes_per_day / 60) : (preferences?.hours_per_day || 4);
           if (day === "Domingo") fallbackHours = Math.max(1, Math.floor(fallbackHours / 2));
           minutes = fallbackHours * 60;
-          // check if day was explicitly excluded
-          if (preferences?.study_days && !preferences.study_days.includes(dIdx)) {
-            minutes = 0;
-          }
+        }
+        
+        // check if day was explicitly excluded
+        if (preferences?.study_days && !preferences.study_days.includes(globalDayId)) {
+          minutes = 0;
         }
         
         if (minutes === 0) return;
