@@ -20,6 +20,7 @@ function CadastroRoute() {
   
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,6 +82,7 @@ function CadastroRoute() {
         options: {
           data: {
             full_name: name,
+            phone: phone,
           }
         }
       });
@@ -137,6 +139,16 @@ function CadastroRoute() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone / WhatsApp (Opcional)</Label>
+            <Input 
+              id="phone" 
+              type="tel" 
+              placeholder="(11) 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
           </div>
           <div className="space-y-2">
