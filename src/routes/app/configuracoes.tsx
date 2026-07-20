@@ -356,7 +356,12 @@ function ConfiguracoesRoute() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nome da Prova/Objetivo</Label>
+                  <Label>
+                    {localProfile.studentType === "universidade" ? "Nome do Semestre" :
+                     localProfile.studentType === "vestibular" ? "Nome do Vestibular" :
+                     localProfile.studentType === "concurso" ? "Nome do Concurso" :
+                     "Nome da Prova/Objetivo"}
+                  </Label>
                   <Input
                     value={localGoal.title}
                     onChange={(e) => setLocalGoal({ ...localGoal, title: e.target.value })}
@@ -364,7 +369,11 @@ function ConfiguracoesRoute() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data Alvo (Opcional)</Label>
+                  <Label>
+                    {localProfile.studentType === "universidade" ? "Fim do Semestre (Opcional)" :
+                     localProfile.studentType === "vestibular" || localProfile.studentType === "concurso" ? "Data da Prova (Opcional)" :
+                     "Data Alvo (Opcional)"}
+                  </Label>
                   <Input
                     type="date"
                     value={localGoal.targetDate}

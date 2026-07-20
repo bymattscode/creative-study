@@ -408,7 +408,12 @@ function DashboardRoute() {
           <Card className="bg-[#21193a] border-border shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
-                <span>Alvo Principal</span>
+                <span>
+                  {profile?.studentType === "universidade" ? "Semestre Atual" :
+                   profile?.studentType === "vestibular" ? "Vestibular Foco" :
+                   profile?.studentType === "concurso" ? "Concurso Foco" :
+                   "Alvo Principal"}
+                </span>
                 <Target size={16} className="text-primary" />
               </CardTitle>
             </CardHeader>
