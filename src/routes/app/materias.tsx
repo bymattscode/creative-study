@@ -247,7 +247,7 @@ function MateriasRoute() {
                 <AccordionContent className="px-4 pb-6 pt-2">
                   <div className="space-y-2 mb-4 pl-4 border-l-2 border-border/50 ml-2">
                     {subTopics.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-2 italic">Nenhum tópico cadastrado.</p>
+                      <p className="text-sm text-muted-foreground py-2 italic">Nenhum conteúdo cadastrado.</p>
                     ) : (
                       subTopics.map((topic: any) => (
                         <div key={topic.id} className="group flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-background/50 transition-colors">
@@ -278,7 +278,7 @@ function MateriasRoute() {
                                   <Edit2 size={12} />
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-400" onClick={() => {
-                                  if (confirm("Remover este tópico?")) deleteTopicMutation.mutate(topic.id);
+                                  if (confirm("Remover este conteúdo?")) deleteTopicMutation.mutate(topic.id);
                                 }}>
                                   <Trash2 size={12} />
                                 </Button>
@@ -292,7 +292,7 @@ function MateriasRoute() {
                   
                   <div className="flex items-center gap-2 pl-4 ml-2">
                     <Input 
-                      placeholder="Adicionar novo tópico..."
+                      placeholder="Adicionar novo conteúdo..."
                       value={newTopicName[sub.id] || ""}
                       onChange={e => setNewTopicName(prev => ({ ...prev, [sub.id]: e.target.value }))}
                       className="h-9 bg-background/50 border-dashed text-sm"

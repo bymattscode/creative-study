@@ -283,18 +283,24 @@ function PlanoSemanalRoute() {
       const newItems: any[] = [];
       
       const weightedSubjects: typeof subjects = [];
-      subjects.forEach(sub => {
+      const subjectWeights = subjects.map(sub => {
         let weight = 3; // Default Médio
         if (sub.difficulty === "Muito Fácil") weight = 1;
         if (sub.difficulty === "Fácil") weight = 2;
         if (sub.difficulty === "Médio") weight = 3;
         if (sub.difficulty === "Difícil") weight = 4;
         if (sub.difficulty === "Muito Difícil") weight = 5;
-        
-        for (let i = 0; i < weight; i++) {
-          weightedSubjects.push(sub);
-        }
+        return { sub, weight };
       });
+
+      const maxWeight = Math.max(...subjectWeights.map(sw => sw.weight), 0);
+      for (let i = 0; i < maxWeight; i++) {
+        subjectWeights.forEach(sw => {
+          if (sw.weight > i) {
+            weightedSubjects.push(sw.sub);
+          }
+        });
+      }
       
       let subjectIdx = 0;
 
