@@ -23,6 +23,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const Route = createFileRoute("/app/")({
   component: DashboardRoute,
@@ -557,25 +558,29 @@ function DashboardRoute() {
               </CardTitle>
               <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 space-y-5">
+            <CardContent className="pt-4">
               {subjects.length > 0 ? (
-                subjects.slice(0, 4).map((sub) => {
-                  const progressVal = getSubjectProgress(sub.id);
-                  return (
-                  <div key={sub.id} className="space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="font-medium truncate pr-2">{sub.name}</span>
-                      <span className="text-muted-foreground font-bold">
-                        {progressVal}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={progressVal}
-                      className="h-1.5"
-                      indicatorColor={sub.color || "bg-primary"}
-                    />
+                <ScrollArea className="h-[300px] pr-4">
+                  <div className="space-y-5">
+                    {subjects.map((sub) => {
+                      const progressVal = getSubjectProgress(sub.id);
+                      return (
+                      <div key={sub.id} className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium truncate pr-2">{sub.name}</span>
+                          <span className="text-muted-foreground font-bold">
+                            {progressVal}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={progressVal}
+                          className="h-1.5"
+                          indicatorColor={sub.color || "bg-primary"}
+                        />
+                      </div>
+                    )})}
                   </div>
-                )})
+                </ScrollArea>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
