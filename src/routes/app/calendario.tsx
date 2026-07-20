@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Goal, Subject } from "@/types/models";
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/app/calendario")({
 
 function CalendarioRoute() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Buscar todas as provas/metas futuras
   const { data: upcomingExams = [] } = useQuery({
