@@ -53,7 +53,11 @@ function ConfiguracoesRoute() {
   const queryClient = useQueryClient();
 
   const [localProfile, setLocalProfile] = useState({ name: "", studentType: "" });
-  const [localPrefs, setLocalPrefs] = useState({ minutesPerDay: 240, studyDays: [1,2,3,4,5] as number[] });
+  const [localPrefs, setLocalPrefs] = useState({
+    minutesPerDay: 240,
+    studyDays: [1,2,3,4,5],
+    dailyStudyHours: {} as Record<string, number>,
+  });
 
   const { data: dbProfile } = useQuery({
     queryKey: ["userProfile", user?.id],
@@ -94,6 +98,7 @@ function ConfiguracoesRoute() {
       setLocalPrefs({
         minutesPerDay: dbPrefs.minutes_per_day || 240,
         studyDays: dbPrefs.study_days || [1,2,3,4,5],
+        dailyStudyHours: dbPrefs.daily_study_hours || {},
       });
     }
   }, [dbProfile, dbPrefs]);
@@ -115,6 +120,7 @@ function ConfiguracoesRoute() {
           .update({
             minutes_per_day: localPrefs.minutesPerDay,
             study_days: localPrefs.studyDays,
+            daily_study_hours: localPrefs.dailyStudyHours,
           })
           .eq("id", dbPrefs.id);
       }
@@ -295,23 +301,41 @@ function ConfiguracoesRoute() {
                     })}
                   </div>
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <div className="flex justify-between items-end mb-2">
+                {localPrefs.studyDays.length > 0 && (
+                  <div className="space-y-6 md:col-span-2 mt-4">
                     <Label>Tempo de Estudo por Dia</Label>
-                    <span className="text-xl font-bold text-primary">
-                      {Math.floor(localPrefs.minutesPerDay / 60) > 0 ? `${Math.floor(localPrefs.minutesPerDay / 60)}h ` : ""}
-                      {localPrefs.minutesPerDay % 60 > 0 ? `${localPrefs.minutesPerDay % 60}m` : ""}
-                    </span>
+                    <div className="space-y-4">
+                      {localPrefs.studyDays.map(dayId => {
+                        const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+                        const currentMinutes = localPrefs.dailyStudyHours?.[dayId.toString()] || 120;
+                        return (
+                          <div key={dayId} className="space-y-3 bg-surface/30 p-4 rounded-lg border border-border/50">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-foreground">{dayNames[dayId]}</span>
+                              <span className="text-xl font-bold text-primary">
+                                {Math.floor(currentMinutes / 60) > 0 ? `${Math.floor(currentMinutes / 60)}h ` : ""}
+                                {currentMinutes % 60 > 0 ? `${currentMinutes % 60}m` : ""}
+                              </span>
+                            </div>
+                            <Slider
+                              value={[currentMinutes]}
+                              max={720}
+                              min={15}
+                              step={15}
+                              onValueChange={(val) => setLocalPrefs({
+                                ...localPrefs,
+                                dailyStudyHours: {
+                                  ...localPrefs.dailyStudyHours,
+                                  [dayId.toString()]: val[0]
+                                }
+                              })}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <Slider
-                    value={[localPrefs.minutesPerDay]}
-                    min={15}
-                    max={720}
-                    step={15}
-                    onValueChange={(v) => setLocalPrefs({ ...localPrefs, minutesPerDay: v[0] })}
-                    className="w-full"
-                  />
-                </div>
+                )}
               </div>
               <div className="pt-4 flex justify-end">
                 <Button onClick={handleSaveProfile} className="flex items-center gap-2">

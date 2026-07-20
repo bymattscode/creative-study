@@ -49,6 +49,7 @@ function OnboardingWizard() {
     goalDate: "",
     minutesPerDay: 240,
     studyDays: [1, 2, 3, 4, 5],
+    dailyStudyHours: { "1": 240, "2": 240, "3": 240, "4": 240, "5": 240 },
     preferredTime: "",
     subjects: [{ name: "", difficulty: "Médio" }],
   });
@@ -271,23 +272,41 @@ function OnboardingWizard() {
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="flex justify-between items-end">
+                {data.studyDays.length > 0 && (
+                  <div className="space-y-6 mt-6">
                     <Label>Tempo de Estudo por Dia</Label>
-                    <span className="text-3xl font-bold text-primary">
-                      {Math.floor(data.minutesPerDay / 60) > 0 ? `${Math.floor(data.minutesPerDay / 60)}h ` : ""}
-                      {data.minutesPerDay % 60 > 0 ? `${data.minutesPerDay % 60}m` : ""}
-                    </span>
+                    <div className="space-y-4">
+                      {data.studyDays.map(dayId => {
+                        const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+                        const currentMinutes = data.dailyStudyHours?.[dayId.toString()] || 120;
+                        return (
+                          <div key={dayId} className="space-y-3 bg-surface/30 p-4 rounded-lg border border-border/50">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-foreground">{dayNames[dayId]}</span>
+                              <span className="text-xl font-bold text-primary">
+                                {Math.floor(currentMinutes / 60) > 0 ? `${Math.floor(currentMinutes / 60)}h ` : ""}
+                                {currentMinutes % 60 > 0 ? `${currentMinutes % 60}m` : ""}
+                              </span>
+                            </div>
+                            <Slider
+                              defaultValue={[currentMinutes]}
+                              max={720}
+                              min={15}
+                              step={15}
+                              onValueChange={(val) => setData({
+                                ...data,
+                                dailyStudyHours: {
+                                  ...data.dailyStudyHours,
+                                  [dayId.toString()]: val[0]
+                                }
+                              })}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <Slider
-                    value={[data.minutesPerDay]}
-                    min={15}
-                    max={720}
-                    step={15}
-                    onValueChange={(v) => setData({ ...data, minutesPerDay: v[0] })}
-                    className="w-full"
-                  />
-                </div>
+                )}
 
                 <div className="space-y-3">
                   <Label>Turno Preferido</Label>

@@ -298,10 +298,30 @@ function PlanoSemanalRoute() {
       let subjectIdx = 0;
 
       WEEK_DAYS.forEach((day, dIdx) => {
-        let hours = preferences?.hours_per_day || 4;
-        if (day === "Domingo") hours = Math.max(1, Math.floor(hours / 2));
+        let minutes = 0;
+        // fallback to old hours_per_day if daily_study_hours is empty
+        if (preferences?.daily_study_hours && preferences.daily_study_hours[dIdx.toString()]) {
+          minutes = preferences.daily_study_hours[dIdx.toString()];
+        } else {
+          let fallbackHours = preferences?.minutes_per_day ? Math.floor(preferences.minutes_per_day / 60) : (preferences?.hours_per_day || 4);
+          if (day === "Domingo") fallbackHours = Math.max(1, Math.floor(fallbackHours / 2));
+          minutes = fallbackHours * 60;
+          // check if day was explicitly excluded
+          if (preferences?.study_days && !preferences.study_days.includes(dIdx)) {
+            minutes = 0;
+          }
+        }
+        
+        if (minutes === 0) return;
 
-        for (let i = 0; i < hours; i++) {
+        let remainingMinutes = minutes;
+        let startHour = 8; // Default start time
+        let startMinute = 0;
+        let i = 0;
+
+        while (remainingMinutes > 0) {
+          let blockDuration = Math.min(60, remainingMinutes);
+
           const sub = weightedSubjects[subjectIdx % weightedSubjects.length];
           subjectIdx++;
 
@@ -310,16 +330,24 @@ function PlanoSemanalRoute() {
           const topicName = `${ACTIVITY_LABELS[type]} - Módulo ${Math.floor(i / 2) + 1}`;
 
           const dateForTask = new Date(dates[dIdx]);
-          dateForTask.setHours(8 + i, 0, 0, 0);
+          dateForTask.setHours(startHour, startMinute, 0, 0);
 
           newItems.push({
             weekly_plan_id: targetPlanId,
             subject_id: sub.id,
             title: encodeTitle(type, topicName, false),
             scheduled_for: dateForTask.toISOString(),
-            duration_minutes: 60,
+            duration_minutes: blockDuration,
             completed: false,
           });
+
+          remainingMinutes -= blockDuration;
+          startMinute += blockDuration;
+          if (startMinute >= 60) {
+            startHour += Math.floor(startMinute / 60);
+            startMinute = startMinute % 60;
+          }
+          i++;
         }
       });
 
@@ -406,6 +434,7 @@ function PlanoSemanalRoute() {
           subject_id: task.subjectId,
           title: newTitle,
           duration_minutes: task.durationMinutes,
+          scheduled_for: task.scheduledFor,
         })
         .eq("id", task.id);
       if (error) throw error;
@@ -580,7 +609,7 @@ function PlanoSemanalRoute() {
                       <div className="mt-3 sm:mt-0 ml-9 sm:ml-0 flex items-center gap-2">
                         <div className="flex items-center gap-1 text-xs font-medium bg-surface px-2 py-1 rounded text-muted-foreground">
                           <Clock size={12} />
-                          {task.durationMinutes} min
+                          {new Date(task.scheduledFor).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({task.durationMinutes} min)
                         </div>
 
                         <DropdownMenu>
@@ -769,6 +798,26 @@ function PlanoSemanalRoute() {
                       task: { ...editingTask.task, topicName: e.target.value },
                     })
                   }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="startTime">Horário de Início</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={new Date(editingTask.task.scheduledFor).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
+                  onChange={(e) => {
+                    const [h, m] = e.target.value.split(':');
+                    if (h && m) {
+                      const d = new Date(editingTask.task.scheduledFor);
+                      d.setHours(parseInt(h), parseInt(m), 0, 0);
+                      setEditingTask({
+                        ...editingTask,
+                        task: { ...editingTask.task, scheduledFor: d.toISOString() },
+                      });
+                    }
+                  }}
                 />
               </div>
 

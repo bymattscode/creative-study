@@ -36,6 +36,7 @@ export interface OnboardingPreference {
   hoursPerDay?: number; // legacy
   minutesPerDay: number;
   studyDays: number[];
+  dailyStudyHours?: Record<string, number>; // Novo: minutos por dia. ex: { "1": 120, "2": 240 } (0=Dom, 1=Seg...)
   preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
   createdAt: Date;
   updatedAt: Date;
@@ -108,6 +109,8 @@ export interface PlanItem {
   scheduledFor: Date;
   durationMinutes: number;
   completed: boolean;
+  startTime?: string; // Novo: Horário de início no formato HH:mm
+  endTime?: string; // Novo: Horário de fim no formato HH:mm
   createdAt: Date;
 }
 
