@@ -468,7 +468,6 @@ function DashboardRoute() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Coluna Esquerda: Meta e Métricas */}
         <div className="space-y-6 md:col-span-1">
-        <div className="space-y-6 md:col-span-1">
           {/* Card: Objetivo Principal (Apenas Univ) */}
           {profile?.studentType === "universidade" && (
             <Card className="bg-[#21193a] border-border shadow-sm">
