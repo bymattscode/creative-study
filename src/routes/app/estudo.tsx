@@ -170,8 +170,17 @@ function EstudoRoute() {
 
       if (error) throw error;
 
-      // Se for teoria ou questões, tenta já inserir uma revisão para amanhã (Espaçada)
-      if (type === "teoria" || type === "questoes") {
+      // Obter configuração global de revisão
+      const { data: prefData } = await supabase
+        .from("onboarding_preferences")
+        .select("global_review_model")
+        .eq("user_id", user.id)
+        .single();
+        
+      const reviewModel = prefData?.global_review_model || "classic";
+
+      // Se for teoria ou questões, e o modelo não for 'none', insere uma revisão para amanhã (Espaçada)
+      if ((type === "teoria" || type === "questoes") && reviewModel !== "none") {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
 

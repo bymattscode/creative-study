@@ -57,6 +57,7 @@ export const saveOnboardingData = async (userId: string, data: OnboardingData) =
         study_days: data.studyDays,
         daily_study_hours: data.dailyStudyHours,
         preferred_time: data.preferredTime,
+        global_review_model: 'classic',
       }, { onConflict: "user_id" });
       
     if (prefError) throw new Error(`Erro nas preferências: ${prefError.message}`);

@@ -359,27 +359,7 @@ function MateriasRoute() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label>Modelo de Revisão Automática</Label>
-              <Select
-                value={subjectForm.review_model}
-                onValueChange={(val) => setSubjectForm({ ...subjectForm, review_model: val as ReviewModel })}
-              >
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Selecione o modelo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Esquecimento Natural (Sem revisão)</SelectItem>
-                  <SelectItem value="short_term">Curto Prazo (Dia 1, 3, 7, 15, 30)</SelectItem>
-                  <SelectItem value="classic">Clássico (Dia 1, 7, 30, 90)</SelectItem>
-                  <SelectItem value="bimonthly">Bimestral (Dia 1, 15, 60)</SelectItem>
-                  <SelectItem value="semiannual">Semestral (Dia 1, 30, 90, 180)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                As revisões serão geradas automaticamente sempre que você concluir o estudo de um tópico desta matéria.
-              </p>
-            </div>
+
             <div className="grid gap-2">
               <Label>Cor de Identificação</Label>
               <div className="flex flex-wrap gap-2">

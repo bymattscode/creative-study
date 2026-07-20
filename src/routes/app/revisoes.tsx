@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
+import { ReviewModel } from "@/types/models";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,35 @@ function RevisoesRoute() {
     enabled: !!user?.id,
   });
 
+  const { data: preferences } = useQuery({
+    queryKey: ["preferences", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("onboarding_preferences")
+        .select("global_review_model")
+        .eq("user_id", user?.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const updateReviewModelMutation = useMutation({
+    mutationFn: async (model: ReviewModel) => {
+      const { error } = await supabase
+        .from("onboarding_preferences")
+        .update({ global_review_model: model })
+        .eq("user_id", user?.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["preferences"] });
+      toast.success("Modelo de revisão atualizado!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const getSubjectColor = (subjectId: string) => {
     return subjects.find((s) => s.id === subjectId)?.color || "#a8ff00";
   };
@@ -156,20 +186,34 @@ function RevisoesRoute() {
       item: DbReviewItem;
       perception: "Difícil" | "Médio" | "Fácil";
     }) => {
+      const model = preferences?.global_review_model || "classic";
+      let seq = [1, 7, 30, 90];
+      if (model === "short_term") seq = [1, 3, 7, 15, 30];
+      else if (model === "bimonthly") seq = [1, 15, 60];
+      else if (model === "semiannual") seq = [1, 30, 90, 180];
+
       let nextInterval = item.interval_days || 1;
       let newConfidence = item.confidence_level || 50;
 
+      // Encontrar o indice atual aproximado na sequência
+      let currentIdx = seq.findIndex(val => val >= nextInterval);
+      if (currentIdx === -1) currentIdx = seq.length - 1;
+
       switch (perception) {
         case "Difícil":
-          nextInterval = 1; // Try again tomorrow
+          nextInterval = 1; // Volta pro começo
           newConfidence = Math.max(0, newConfidence - 20);
           break;
         case "Médio":
-          nextInterval = Math.ceil(nextInterval * 1.5);
+          // Avança 1 nível na sequência
+          currentIdx = Math.min(seq.length - 1, currentIdx + 1);
+          nextInterval = seq[currentIdx];
           newConfidence = Math.min(100, newConfidence + 10);
           break;
         case "Fácil":
-          nextInterval = Math.ceil(nextInterval * 2.5);
+          // Avança 2 níveis se achar fácil
+          currentIdx = Math.min(seq.length - 1, currentIdx + 2);
+          nextInterval = seq[currentIdx];
           newConfidence = Math.min(100, newConfidence + 25);
           break;
       }
@@ -364,6 +408,38 @@ function RevisoesRoute() {
           <Plus size={16} className="mr-2" /> Nova Revisão
         </Button>
       </div>
+
+      <Card className="bg-surface/50 border-border shadow-sm">
+        <CardContent className="p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div>
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <BrainCircuit className="text-primary" size={18} />
+              Modelo de Revisão Automática
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              As revisões serão geradas automaticamente de acordo com o modelo selecionado.
+            </p>
+          </div>
+          <div className="w-full sm:w-[280px]">
+            <Select
+              value={preferences?.global_review_model || "classic"}
+              onValueChange={(val) => updateReviewModelMutation.mutate(val as ReviewModel)}
+              disabled={!preferences || updateReviewModelMutation.isPending}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione o modelo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Esquecimento Natural (Sem revisão)</SelectItem>
+                <SelectItem value="short_term">Curto Prazo (Dia 1, 3, 7, 15, 30)</SelectItem>
+                <SelectItem value="classic">Clássico (Dia 1, 7, 30, 90)</SelectItem>
+                <SelectItem value="bimonthly">Bimestral (Dia 1, 15, 60)</SelectItem>
+                <SelectItem value="semiannual">Semestral (Dia 1, 30, 90, 180)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="hoje" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-surface border border-border p-1">

@@ -38,6 +38,7 @@ export interface OnboardingPreference {
   studyDays: number[];
   dailyStudyHours?: Record<string, number>; // Novo: minutos por dia. ex: { "1": 120, "2": 240 } (0=Dom, 1=Seg...)
   preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
+  globalReviewModel?: ReviewModel; // Modelo de revisão global
   createdAt: Date;
   updatedAt: Date;
 }
