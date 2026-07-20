@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import dashboardMockup from "@/assets/dashboard-mockup.png.asset.json";
 import {
   Accordion,
   AccordionContent,
@@ -84,7 +85,7 @@ function Index() {
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 bottom-0 h-40"></div>
             <div className="absolute inset-0 bg-primary/5 blur-[100px] -z-10 rounded-full"></div>
             <img
-              src="/mockup.png"
+              src={dashboardMockup.url}
               alt="Dashboard Sinapse"
               className="rounded-2xl border border-[#3a2a67] shadow-2xl relative z-0 w-full object-cover"
             />
