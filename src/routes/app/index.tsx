@@ -221,6 +221,30 @@ function DashboardRoute() {
     }
   });
 
+  const updateExamDateMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      const { error } = await supabase.from("goals").update({ target_date: newDate }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nextExam"] });
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      toast.success("Data da prova atualizada!");
+    }
+  });
+
+  const updateGoalDateMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      const { error } = await supabase.from("goals").update({ target_date: newDate }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["goal"] });
+      toast.success("Data atualizada com sucesso!");
+    }
+  });
+
   const insight = useMemo(
     () => generateDailyInsight(history, reviews, subjects),
     [history, reviews, subjects],
@@ -482,13 +506,27 @@ function DashboardRoute() {
                   {goal ? goal.title : "Semestre não definido"}
                 </div>
 
-                {daysRemaining !== null && (
-                  <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border">
+                {daysRemaining !== null && goal && (
+                  <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border relative group overflow-hidden">
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground uppercase">Contagem Regressiva</span>
-                      <span className="font-bold text-lg">{daysRemaining} dias</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">{daysRemaining} dias</span>
+                        <div className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] bg-muted px-1.5 py-0.5 rounded cursor-pointer">
+                          Editar
+                        </div>
+                      </div>
                     </div>
                     <Clock className="text-muted-foreground" size={24} />
+                    <input 
+                      type="date" 
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      onChange={(e) => {
+                        if(e.target.value) {
+                           updateGoalDateMutation.mutate({ id: goal.id, newDate: e.target.value });
+                        }
+                      }} 
+                    />
                   </div>
                 )}
               </CardContent>
@@ -496,9 +534,9 @@ function DashboardRoute() {
           )}
 
           {/* Card: Próxima Prova */}
-          <Card className="bg-[#2a0863] border-border shadow-sm ring-1 ring-primary/20">
+            <Card className="bg-[#2a0863] border-border shadow-sm ring-1 ring-primary/20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary/80">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary">
                 <span>Próxima Prova</span>
                 <CalendarDays size={16} className="text-primary" />
               </CardTitle>
@@ -516,13 +554,27 @@ function DashboardRoute() {
                 )}
               </div>
 
-              {nextExamDaysRemaining !== null && (
-                <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border">
+              {nextExamDaysRemaining !== null && nextExam && (
+                <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border relative group overflow-hidden">
                   <div className="flex flex-col">
                     <span className="text-xs text-muted-foreground uppercase">Faltam apenas</span>
-                    <span className="font-bold text-lg text-primary">{nextExamDaysRemaining} dias</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-lg text-primary">{nextExamDaysRemaining} dias</span>
+                      <div className="text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer">
+                        Editar
+                      </div>
+                    </div>
                   </div>
                   <Target className="text-primary" size={24} />
+                  <input 
+                    type="date" 
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    onChange={(e) => {
+                      if(e.target.value) {
+                         updateExamDateMutation.mutate({ id: nextExam.id, newDate: e.target.value });
+                      }
+                    }} 
+                  />
                 </div>
               )}
             </CardContent>

@@ -218,6 +218,19 @@ function ConfiguracoesRoute() {
     }
   });
 
+  const updateExamDateMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      const { error } = await supabase.from("goals").update({ target_date: newDate }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+      queryClient.invalidateQueries({ queryKey: ["nextExam"] });
+      toast.success("Data da prova atualizada!");
+    }
+  });
+
   const updateGoalMutation = useMutation({
     mutationFn: async () => {
       if (!goal) {
@@ -507,7 +520,20 @@ function ConfiguracoesRoute() {
                         <div className="flex flex-col">
                           <span className="font-bold text-sm">{parsed.name}</span>
                           <span className="text-xs text-muted-foreground flex items-center gap-2">
-                            <span>{new Date(exam.target_date!).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                            <div className="relative group flex items-center">
+                              <span className="hover:text-primary transition-colors cursor-pointer border-b border-dashed border-transparent group-hover:border-primary">
+                                {new Date(exam.target_date!).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                              </span>
+                              <input 
+                                type="date" 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                onChange={(e) => {
+                                  if(e.target.value) {
+                                     updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
+                                  }
+                                }} 
+                              />
+                            </div>
                             <span>•</span>
                             <span className="text-primary">{subjectName}</span>
                           </span>

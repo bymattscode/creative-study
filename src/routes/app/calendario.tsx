@@ -7,6 +7,7 @@ import { Goal, Subject } from "@/types/models";
 import { CalendarDays, MapPin, Target, Clock, Calendar as CalendarIcon, CheckCircle2 } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/calendario")({
   component: CalendarioRoute,
@@ -91,8 +92,34 @@ function CalendarioRoute() {
   const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Começa na segunda-feira
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(startOfCurrentWeek, i));
 
-  const getDaysRemaining = (targetDate: Date) => {
-    const diff = targetDate.getTime() - new Date().getTime();
+  const updateExamDateMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      const { error } = await supabase.from("goals").update({ target_date: newDate }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+      queryClient.invalidateQueries({ queryKey: ["nextExam"] });
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      toast.success("Data da prova atualizada no calendário!");
+    }
+  });
+
+  const updateGoalDateMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      const { error } = await supabase.from("goals").update({ target_date: newDate }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+      queryClient.invalidateQueries({ queryKey: ["goal"] });
+      toast.success("Final do semestre atualizado no calendário!");
+    }
+  });
+
+  const getDaysRemaining = (targetDate: Date | string) => {
+    const date = typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
+    const diff = date.getTime() - new Date().getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
   };
 
@@ -145,9 +172,21 @@ function CalendarioRoute() {
                           {format(mainGoal.targetDate!, "d 'de' MMMM, yyyy", { locale: ptBR })}
                         </div>
                       </div>
-                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border">
-                        <span className="block text-2xl font-bold font-display leading-none">{getDaysRemaining(mainGoal.targetDate!)}</span>
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Dias</span>
+                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border relative group overflow-hidden">
+                        <span className="block text-2xl font-bold font-display leading-none group-hover:hidden">{getDaysRemaining(mainGoal.targetDate!)}</span>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground group-hover:hidden">Dias</span>
+                        <div className="hidden group-hover:flex flex-col items-center justify-center h-full text-xs text-primary font-bold uppercase">
+                          Editar
+                        </div>
+                        <input 
+                          type="date" 
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          onChange={(e) => {
+                            if(e.target.value) {
+                               updateGoalDateMutation.mutate({ id: mainGoal.id, newDate: e.target.value });
+                            }
+                          }} 
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -186,9 +225,21 @@ function CalendarioRoute() {
                                 </div>
                               )}
                             </div>
-                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border">
-                              <span className="block text-xl font-bold font-display leading-none text-primary">{daysLeft}</span>
-                              <span className="text-[10px] uppercase font-bold text-muted-foreground">Dias</span>
+                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border relative group overflow-hidden">
+                              <span className="block text-xl font-bold font-display leading-none text-primary group-hover:hidden">{daysLeft}</span>
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground group-hover:hidden">Dias</span>
+                              <div className="hidden group-hover:flex flex-col items-center justify-center h-full text-[10px] text-primary font-bold uppercase">
+                                Editar
+                              </div>
+                              <input 
+                                type="date" 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                onChange={(e) => {
+                                  if(e.target.value) {
+                                     updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
+                                  }
+                                }} 
+                              />
                             </div>
                           </div>
                         </CardContent>
