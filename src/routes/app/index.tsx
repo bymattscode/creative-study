@@ -450,7 +450,7 @@ function DashboardRoute() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 hover:text-primary transition-all border-border"
           asChild
         >
           <Link to="/app/estudo">
@@ -461,7 +461,7 @@ function DashboardRoute() {
 
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 hover:text-primary transition-all border-border"
           asChild
         >
           <Link to="/app/revisoes">
@@ -472,7 +472,7 @@ function DashboardRoute() {
 
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 hover:text-primary transition-all border-border"
           asChild
         >
           <Link to="/app/plano">
@@ -483,7 +483,7 @@ function DashboardRoute() {
 
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 hover:text-primary transition-all border-border"
           asChild
         >
           <Link to="/app/desempenho">
