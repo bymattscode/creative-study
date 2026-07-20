@@ -178,16 +178,16 @@ function CalendarioRoute() {
                           {format(mainGoal.targetDate!, "d 'de' MMMM, yyyy", { locale: ptBR })}
                         </div>
                       </div>
-                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border flex items-center justify-center gap-2">
-                        <div className="flex flex-col items-center">
+                      <div className="bg-background rounded-lg py-2 px-3 text-center min-w-[80px] border border-border relative flex items-center justify-center">
+                        <div className="flex flex-col items-center justify-center w-full">
                           <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(mainGoal.targetDate!)}</span>
                           <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                         </div>
                         <button 
                           onClick={() => navigate({ to: "/app/configuracoes" })}
-                          className="text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 ml-2"
+                          className="absolute right-1.5 text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
                         >
-                          <Pencil size={14} />
+                          <Pencil size={12} />
                         </button>
                       </div>
                     </div>
@@ -226,16 +226,16 @@ function CalendarioRoute() {
                                 </div>
                               )}
                             </div>
-                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border flex items-center justify-center gap-2">
-                              <div className="flex flex-col items-center">
+                            <div className="bg-background rounded-lg py-2 px-3 text-center min-w-[65px] border border-border relative flex items-center justify-center">
+                              <div className="flex flex-col items-center justify-center w-full">
                                 <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(exam.targetDate!)}</span>
                                 <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                               </div>
                               <button 
                                 onClick={() => navigate({ to: "/app/configuracoes" })}
-                                className="text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 ml-1"
+                                className="absolute right-1 text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
                               >
-                                <Pencil size={12} />
+                                <Pencil size={10} />
                               </button>
                             </div>
                           </div>
