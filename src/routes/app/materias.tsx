@@ -12,6 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ReviewModel } from "@/types/models";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -30,7 +38,7 @@ function MateriasRoute() {
 
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<any>(null); // null means adding new
-  const [subjectForm, setSubjectForm] = useState({ name: "", color: DEFAULT_COLORS[0], difficulty: "Médio" });
+  const [subjectForm, setSubjectForm] = useState<{ name: string; color: string; difficulty: string; review_model: ReviewModel }>({ name: "", color: DEFAULT_COLORS[0], difficulty: "Médio", review_model: "classic" });
 
   const [newTopicName, setNewTopicName] = useState<Record<string, string>>({}); // subject_id -> topic name
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
@@ -71,7 +79,7 @@ function MateriasRoute() {
   const saveSubjectMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (payload.id) {
-        const { error } = await supabase.from("subjects").update({ name: payload.name, color: payload.color, difficulty: payload.difficulty }).eq("id", payload.id);
+        const { error } = await supabase.from("subjects").update({ name: payload.name, color: payload.color, difficulty: payload.difficulty, review_model: payload.review_model }).eq("id", payload.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("subjects").insert([{
@@ -79,7 +87,8 @@ function MateriasRoute() {
           goal_id: currentGoal?.id || null,
           name: payload.name,
           color: payload.color,
-          difficulty: payload.difficulty
+          difficulty: payload.difficulty,
+          review_model: payload.review_model
         }]);
         if (error) throw error;
       }
@@ -151,10 +160,10 @@ function MateriasRoute() {
   const handleOpenSubjectDialog = (sub?: any) => {
     if (sub) {
       setEditingSubject(sub);
-      setSubjectForm({ name: sub.name, color: sub.color, difficulty: sub.difficulty || "Médio" });
+      setSubjectForm({ name: sub.name, color: sub.color, difficulty: sub.difficulty || "Médio", review_model: sub.review_model || "classic" });
     } else {
       setEditingSubject(null);
-      setSubjectForm({ name: "", color: DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)], difficulty: "Médio" });
+      setSubjectForm({ name: "", color: DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)], difficulty: "Médio", review_model: "classic" });
     }
     setIsSubjectDialogOpen(true);
   };
@@ -209,6 +218,14 @@ function MateriasRoute() {
                       <span className="text-xs px-2 py-1 bg-background rounded-full text-muted-foreground font-medium hidden sm:inline-block">
                         {subTopics.length} tópicos
                       </span>
+                      {sub.review_model && (
+                        <span className="text-xs px-2 py-1 border border-primary/30 text-primary rounded-full font-medium hidden sm:inline-block ml-auto mr-4">
+                          {sub.review_model === "none" ? "Sem Revisão" : 
+                           sub.review_model === "short_term" ? "Curto Prazo" :
+                           sub.review_model === "bimonthly" ? "Bimestral" :
+                           sub.review_model === "semiannual" ? "Semestral" : "Clássico"}
+                        </span>
+                      )}
                     </div>
                   </AccordionTrigger>
                   
@@ -323,6 +340,45 @@ function MateriasRoute() {
                 placeholder="Ex: Direito Administrativo"
                 className="bg-background"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Dificuldade</Label>
+              <Select
+                value={subjectForm.difficulty}
+                onValueChange={(val) => setSubjectForm({ ...subjectForm, difficulty: val })}
+              >
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione a dificuldade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Muito Fácil">Muito Fácil</SelectItem>
+                  <SelectItem value="Fácil">Fácil</SelectItem>
+                  <SelectItem value="Médio">Médio</SelectItem>
+                  <SelectItem value="Difícil">Difícil</SelectItem>
+                  <SelectItem value="Muito Difícil">Muito Difícil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Modelo de Revisão Automática</Label>
+              <Select
+                value={subjectForm.review_model}
+                onValueChange={(val) => setSubjectForm({ ...subjectForm, review_model: val as ReviewModel })}
+              >
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione o modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Esquecimento Natural (Sem revisão)</SelectItem>
+                  <SelectItem value="short_term">Curto Prazo (Dia 1, 3, 7, 15, 30)</SelectItem>
+                  <SelectItem value="classic">Clássico (Dia 1, 7, 30, 90)</SelectItem>
+                  <SelectItem value="bimonthly">Bimestral (Dia 1, 15, 60)</SelectItem>
+                  <SelectItem value="semiannual">Semestral (Dia 1, 30, 90, 180)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                As revisões serão geradas automaticamente sempre que você concluir o estudo de um tópico desta matéria.
+              </p>
             </div>
             <div className="grid gap-2">
               <Label>Cor de Identificação</Label>

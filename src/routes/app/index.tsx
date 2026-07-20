@@ -115,6 +115,46 @@ function DashboardRoute() {
     enabled: !!user,
   });
 
+  const { data: weeklyPlan } = useQuery({
+    queryKey: ["weeklyPlan", user?.id],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabase
+        .from("weekly_plans")
+        .select("*")
+        .eq("user_id", user?.id)
+        .lte("start_date", today)
+        .gte("end_date", today)
+        .single();
+      if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows returned
+      return data || null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: todayMissions = [] } = useQuery({
+    queryKey: ["todayMissions", weeklyPlan?.id],
+    queryFn: async () => {
+      if (!weeklyPlan) return [];
+      
+      const today = new Date();
+      // Start and end of today
+      const startOfDay = new Date(today.setHours(0,0,0,0)).toISOString();
+      const endOfDay = new Date(today.setHours(23,59,59,999)).toISOString();
+
+      const { data, error } = await supabase
+        .from("plan_items")
+        .select("*")
+        .eq("weekly_plan_id", weeklyPlan.id)
+        .gte("scheduled_for", startOfDay)
+        .lte("scheduled_for", endOfDay)
+        .order("scheduled_for", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!weeklyPlan,
+  });
+
   const insight = useMemo(
     () => generateDailyInsight(history, reviews, subjects),
     [history, reviews, subjects],
@@ -417,35 +457,52 @@ function DashboardRoute() {
               <CardTitle className="flex items-center justify-between font-display text-lg">
                 Missões de Hoje
                 <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-bold">
-                  3 pendentes
+                  {todayMissions.filter(m => !m.completed).length} pendentes
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              {history.length === 0 && reviews.length === 0 ? (
+              {todayMissions.length === 0 && reviews.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
                   <p className="text-sm">Nenhuma missão para hoje ainda.</p>
-                  <p className="text-xs mt-1">Comece estudando {subjects[0]?.name || "uma matéria"}!</p>
+                  <p className="text-xs mt-1">Gere seu cronograma ou comece estudando livremente!</p>
+                  <Button variant="link" className="text-primary mt-2 h-auto p-0 text-xs" asChild>
+                    <Link to="/app/plano">Ir para Plano Semanal</Link>
+                  </Button>
                 </div>
               ) : (
                 <>
-                  {/* Exemplo de Missão Dinâmica (Estudo) baseada nas matérias cadastradas */}
-                  {subjects.length > 0 && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer">
-                      <div className="mt-1 h-5 w-5 rounded-full border-2 border-muted-foreground group-hover:border-primary flex-shrink-0"></div>
-                      <div className="flex flex-col flex-1">
-                        <span className="font-bold text-sm">{subjects[0].name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Sessão Sugerida pela IA
-                        </span>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">
-                            {prefs?.pomodoro_length || 25} min
+                  {todayMissions.slice(0, 3).map((mission: any) => {
+                    let decodedTitle = { type: "teoria", topicName: mission.title };
+                    try {
+                      decodedTitle = JSON.parse(mission.title);
+                    } catch (e) {
+                      // fallback for legacy
+                    }
+                    const subject = subjects.find(s => s.id === mission.subject_id);
+                    
+                    return (
+                      <div key={mission.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors group ${mission.completed ? "bg-surface opacity-60 border-transparent" : "bg-background border-border hover:border-primary/50"}`}>
+                        <div className={`mt-1 h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full border-2 ${mission.completed ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}>
+                          {mission.completed && <CheckCircle2 size={12} />}
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <span className={`font-bold text-sm ${mission.completed ? "line-through text-muted-foreground" : ""}`}>{subject?.name || "Estudo"}</span>
+                          <span className="text-xs text-muted-foreground line-clamp-1">
+                            {decodedTitle.topicName}
                           </span>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] uppercase font-bold bg-surface px-2 py-0.5 rounded text-muted-foreground">
+                              {mission.duration_minutes} min
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-primary border border-primary/30 px-2 py-0.5 rounded">
+                              {decodedTitle.type}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
 
                   {/* Exemplo Dinâmico de Revisões (Se houver) */}
                   {reviews.length > 0 && (

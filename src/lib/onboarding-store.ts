@@ -9,7 +9,7 @@ export interface OnboardingData {
   minutesPerDay: number;
   studyDays: number[];
   preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
-  subjects: Array<{ name: string; difficulty: "Fácil" | "Médio" | "Difícil" }>;
+  subjects: Array<{ name: string; difficulty: "Muito Fácil" | "Fácil" | "Médio" | "Difícil" | "Muito Difícil" }>;
 }
 
 export const saveOnboardingData = async (userId: string, data: OnboardingData) => {

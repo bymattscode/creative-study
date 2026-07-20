@@ -54,6 +54,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export const Route = createFileRoute("/app/plano")({
   component: PlanoSemanalRoute,
@@ -274,6 +275,21 @@ function PlanoSemanalRoute() {
       }
 
       const newItems: any[] = [];
+      
+      const weightedSubjects: typeof subjects = [];
+      subjects.forEach(sub => {
+        let weight = 3; // Default Médio
+        if (sub.difficulty === "Muito Fácil") weight = 1;
+        if (sub.difficulty === "Fácil") weight = 2;
+        if (sub.difficulty === "Médio") weight = 3;
+        if (sub.difficulty === "Difícil") weight = 4;
+        if (sub.difficulty === "Muito Difícil") weight = 5;
+        
+        for (let i = 0; i < weight; i++) {
+          weightedSubjects.push(sub);
+        }
+      });
+      
       let subjectIdx = 0;
 
       WEEK_DAYS.forEach((day, dIdx) => {
@@ -281,7 +297,7 @@ function PlanoSemanalRoute() {
         if (day === "Domingo") hours = Math.max(1, Math.floor(hours / 2));
 
         for (let i = 0; i < hours; i++) {
-          const sub = subjects[subjectIdx % subjects.length];
+          const sub = weightedSubjects[subjectIdx % weightedSubjects.length];
           subjectIdx++;
 
           const type: ActivityType =
@@ -402,10 +418,29 @@ function PlanoSemanalRoute() {
     saveTaskMutation.mutate(editingTask.task);
   };
 
+  const distribution = useMemo(() => {
+    const stats: Record<string, {name: string, color: string, duration: number}> = {};
+    let totalMinutes = 0;
+    planItems.forEach(item => {
+      const sub = subjects.find(s => s.id === item.subject_id);
+      const name = sub?.name || "Sem Matéria";
+      const color = sub?.color || "#888888";
+      if (!stats[name]) {
+        stats[name] = { name, color, duration: 0 };
+      }
+      stats[name].duration += item.duration_minutes;
+      totalMinutes += item.duration_minutes;
+    });
+    return {
+      totalMinutes,
+      data: Object.values(stats).sort((a,b) => b.duration - a.duration)
+    };
+  }, [planItems, subjects]);
+
   const hasEmptyPlan = planItems.length === 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto pb-24 lg:pb-12">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto pb-24 lg:pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -450,12 +485,14 @@ function PlanoSemanalRoute() {
           </CardContent>
         </Card>
       ) : (
-        <Accordion
-          type="multiple"
-          defaultValue={["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]}
-          className="w-full space-y-4"
-        >
-          {plan.map((day, idx) => (
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex-1 w-full min-w-0">
+            <Accordion
+              type="multiple"
+              defaultValue={["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]}
+              className="w-full space-y-4"
+            >
+              {plan.map((day, idx) => (
             <AccordionItem
               key={day.dayName}
               value={day.dayName}
@@ -602,7 +639,57 @@ function PlanoSemanalRoute() {
               </AccordionContent>
             </AccordionItem>
           ))}
-        </Accordion>
+            </Accordion>
+          </div>
+          
+          <div className="w-full lg:w-80 shrink-0 lg:sticky lg:top-6">
+            <Card className="bg-surface-elevated border-border shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-center font-display">Distribuição</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[220px] w-full relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={distribution.data}
+                        dataKey="duration"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={95}
+                        stroke="none"
+                      >
+                        {distribution.data.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-bold font-display">
+                      {Math.floor(distribution.totalMinutes / 60)}h {distribution.totalMinutes % 60 > 0 ? `${distribution.totalMinutes % 60}m` : ''}
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">na semana</span>
+                  </div>
+                </div>
+                
+                <div className="mt-6 space-y-3">
+                  {distribution.data.map(item => (
+                    <div key={item.name} className="flex items-center text-sm">
+                      <div className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="flex-1 truncate text-muted-foreground pr-2">{item.name}</span>
+                      <span className="font-bold shrink-0">
+                        {Math.floor(item.duration / 60)}h {item.duration % 60 > 0 ? `${item.duration % 60}m` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
 
       {/* Edit Dialog */}

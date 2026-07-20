@@ -66,13 +66,16 @@ export interface Exam {
 // 3. Estrutura Acadêmica
 // ==========================================
 
+export type ReviewModel = "none" | "short_term" | "classic" | "bimonthly" | "semiannual";
+
 export interface Subject {
   id: string; // UUID
   userId: string; // Fk -> User
   goalId?: string; // Fk -> Goal (Matéria atrelada a um objetivo específico)
   name: string; // ex: "Biologia"
   color: string; // Código Hex
-  difficulty?: "Fácil" | "Médio" | "Difícil"; // Nível reportado no onboarding
+  difficulty?: "Muito Fácil" | "Fácil" | "Médio" | "Difícil" | "Muito Difícil"; // Nível reportado no onboarding
+  reviewModel?: ReviewModel; // Modelo de revisão
   createdAt: Date;
 }
 

@@ -356,7 +356,7 @@ function OnboardingWizard() {
                       />
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
-                      {["Fácil", "Médio", "Difícil"].map((level) => (
+                      {["Muito Fácil", "Fácil", "Médio", "Difícil", "Muito Difícil"].map((level) => (
                         <button
                           key={level}
                           onClick={() => {
@@ -364,7 +364,7 @@ function OnboardingWizard() {
                             newSubs[idx].difficulty = level as any;
                             setData({ ...data, subjects: newSubs });
                           }}
-                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex-1 md:flex-none ${sub.difficulty === level ? "bg-primary/20 border-primary text-primary" : "border-border/50 text-muted-foreground hover:bg-surface"}`}
+                          className={`text-xs px-2 py-1.5 rounded-full border transition-colors flex-1 md:flex-none text-center leading-none ${sub.difficulty === level ? "bg-primary/20 border-primary text-primary" : "border-border/50 text-muted-foreground hover:bg-surface"}`}
                         >
                           {level}
                         </button>
