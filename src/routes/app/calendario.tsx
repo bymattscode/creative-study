@@ -8,6 +8,8 @@ import { CalendarDays, MapPin, Target, Clock, Calendar as CalendarIcon, CheckCir
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { EditGoalDialog } from "@/components/features/EditGoalDialog";
+import { EditExamDialog } from "@/components/features/EditExamDialog";
 
 export const Route = createFileRoute("/app/calendario")({
   component: CalendarioRoute,
@@ -183,12 +185,11 @@ function CalendarioRoute() {
                           <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(mainGoal.targetDate!)}</span>
                           <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                         </div>
-                        <button 
-                          onClick={() => navigate({ to: "/app/configuracoes" })}
-                          className="absolute right-1.5 text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                        >
-                          <Pencil size={12} />
-                        </button>
+                        <EditGoalDialog 
+                          goal={mainGoal}
+                          triggerClassName="absolute right-1.5 text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          iconSize={12}
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -231,12 +232,11 @@ function CalendarioRoute() {
                                 <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(exam.targetDate!)}</span>
                                 <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                               </div>
-                              <button 
-                                onClick={() => navigate({ to: "/app/configuracoes" })}
-                                className="absolute right-1 text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                              >
-                                <Pencil size={10} />
-                              </button>
+                              <EditExamDialog 
+                                exam={exam}
+                                triggerClassName="absolute right-1 text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                iconSize={10}
+                              />
                             </div>
                           </div>
                         </CardContent>

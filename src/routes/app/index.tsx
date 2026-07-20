@@ -26,6 +26,8 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { EditGoalDialog } from "@/components/features/EditGoalDialog";
+import { EditExamDialog } from "@/components/features/EditExamDialog";
 
 export const Route = createFileRoute("/app/")({
   component: DashboardRoute,
@@ -501,12 +503,13 @@ function DashboardRoute() {
                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
                   <span>Final do Semestre</span>
                   <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => navigate({ to: "/app/configuracoes" })}
-                      className="text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                    >
-                      <Pencil size={14} />
-                    </button>
+                    {goal && (
+                      <EditGoalDialog 
+                        goal={goal}
+                        triggerClassName="text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                        iconSize={14}
+                      />
+                    )}
                     <Target size={16} className="text-primary" />
                   </div>
                 </CardTitle>
@@ -538,12 +541,13 @@ function DashboardRoute() {
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary">
                 <span>Próxima Prova</span>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => navigate({ to: "/app/configuracoes" })}
-                    className="text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                  >
-                    <Pencil size={14} />
-                  </button>
+                  {nextExam && (
+                    <EditExamDialog 
+                      exam={nextExam}
+                      triggerClassName="text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                      iconSize={14}
+                    />
+                  )}
                   <CalendarDays size={16} className="text-primary" />
                 </div>
               </CardTitle>

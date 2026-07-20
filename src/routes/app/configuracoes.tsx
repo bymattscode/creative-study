@@ -34,65 +34,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EditExamDialog } from "@/components/features/EditExamDialog";
+
 export const Route = createFileRoute("/app/configuracoes")({
   component: ConfiguracoesRoute,
 });
-
-function EditExamDialog({ exam, subjects, updateMutation }: any) {
-  const [open, setOpen] = useState(false);
-  
-  let parsed = { name: exam.title, subjectId: "none" };
-  try { parsed = JSON.parse(exam.title); } catch(e) {}
-  
-  const [name, setName] = useState(parsed.name);
-  const [subjectId, setSubjectId] = useState(parsed.subjectId);
-  const [targetDate, setTargetDate] = useState((exam as any).target_date ? new Date((exam as any).target_date + "T12:00:00Z").toISOString().split('T')[0] : '');
-
-  const handleSave = () => {
-    updateMutation.mutate({
-      id: exam.id,
-      title: JSON.stringify({ name, subjectId }),
-      targetDate
-    });
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-          <Pencil size={16} />
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar Prova</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Nome da Prova / Concurso</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: ENEM, Concurso BB..." />
-          </div>
-          <div className="space-y-2">
-            <Label>Data da Prova</Label>
-            <Input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Matéria Relacionada</Label>
-            <Select value={subjectId} onValueChange={setSubjectId}>
-               <SelectTrigger><SelectValue placeholder="Selecione..."/></SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="none">Geral / Não se aplica</SelectItem>
-                 {subjects.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-               </SelectContent>
-            </Select>
-          </div>
-          <Button className="w-full text-zinc-900" onClick={handleSave}>Salvar Alterações</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 const DEFAULT_COLORS = [
   "#a8ff00",
@@ -287,19 +233,6 @@ function ConfiguracoesRoute() {
       queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
       queryClient.invalidateQueries({ queryKey: ["nextExam"] });
       toast.success("Data da prova atualizada!");
-    }
-  });
-
-  const updateExamMutation = useMutation({
-    mutationFn: async ({ id, title, targetDate }: { id: string; title: string; targetDate: string }) => {
-      const { error } = await supabase.from("goals").update({ title, target_date: targetDate }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["exams"] });
-      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
-      queryClient.invalidateQueries({ queryKey: ["nextExam"] });
-      toast.success("Prova atualizada!");
     }
   });
 
@@ -602,7 +535,7 @@ function ConfiguracoesRoute() {
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <EditExamDialog exam={exam} subjects={subjects} updateMutation={updateExamMutation} />
+                          <EditExamDialog exam={exam} triggerClassName="text-muted-foreground hover:text-primary flex items-center justify-center w-9 h-9 rounded-md" iconSize={16} />
                           <Button variant="ghost" size="icon" onClick={() => deleteExamMutation.mutate(exam.id)} className="text-muted-foreground hover:text-destructive">
                             <Trash2 size={16} />
                           </Button>
