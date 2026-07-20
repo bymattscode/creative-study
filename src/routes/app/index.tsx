@@ -21,6 +21,7 @@ import {
   Sparkles,
   ArrowRight,
   BookOpen,
+  Pencil,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,7 +63,7 @@ function DashboardRoute() {
       return data ? {
         id: data.id,
         title: data.title,
-        targetDate: data.target_date ? new Date(data.target_date) : undefined,
+        targetDate: data.target_date ? new Date(data.target_date + "T12:00:00Z") : undefined,
       } as Goal : null;
     },
     enabled: !!user,
@@ -498,7 +499,12 @@ function DashboardRoute() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
                   <span>Final do Semestre</span>
-                  <Target size={16} className="text-primary" />
+                  <div className="flex items-center gap-2">
+                    <button className="text-muted-foreground hover:text-primary transition-colors">
+                      <Pencil size={14} />
+                    </button>
+                    <Target size={16} className="text-primary" />
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -511,20 +517,11 @@ function DashboardRoute() {
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground uppercase">Contagem Regressiva</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-lg">{daysRemaining} dias</span>
-                        <input 
-                          type="date" 
-                          className="bg-transparent border-none text-muted-foreground text-xs cursor-pointer outline-none"
-                          value={goal.targetDate ? goal.targetDate.toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
-                            if(e.target.value) {
-                               updateGoalDateMutation.mutate({ id: goal.id, newDate: e.target.value });
-                            }
-                          }} 
-                        />
+                        <span className="font-bold text-lg text-primary">{daysRemaining}</span>
+                        <span className="font-bold text-lg text-primary">dias</span>
                       </div>
                     </div>
-                    <Clock className="text-muted-foreground" size={24} />
+                    <Clock className="text-primary" size={24} />
                   </div>
                 )}
               </CardContent>
@@ -536,7 +533,12 @@ function DashboardRoute() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary">
                 <span>Próxima Prova</span>
-                <CalendarDays size={16} className="text-primary" />
+                <div className="flex items-center gap-2">
+                  <button className="text-primary/70 hover:text-primary transition-colors">
+                    <Pencil size={14} />
+                  </button>
+                  <CalendarDays size={16} className="text-primary" />
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -557,17 +559,8 @@ function DashboardRoute() {
                   <div className="flex flex-col">
                     <span className="text-xs text-muted-foreground uppercase">Faltam apenas</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg text-primary">{nextExamDaysRemaining} dias</span>
-                      <input 
-                        type="date" 
-                        className="bg-transparent border-none text-primary/70 text-xs cursor-pointer outline-none"
-                        value={nextExam.targetDate ? nextExam.targetDate.toISOString().split('T')[0] : ''}
-                        onChange={(e) => {
-                          if(e.target.value) {
-                             updateExamDateMutation.mutate({ id: nextExam.id, newDate: e.target.value });
-                          }
-                        }} 
-                      />
+                      <span className="font-bold text-lg text-primary">{nextExamDaysRemaining}</span>
+                      <span className="font-bold text-lg text-primary">dias</span>
                     </div>
                   </div>
                   <Target className="text-primary" size={24} />

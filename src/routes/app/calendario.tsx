@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Goal, Subject } from "@/types/models";
-import { CalendarDays, MapPin, Target, Clock, Calendar as CalendarIcon, CheckCircle2 } from "lucide-react";
+import { CalendarDays, MapPin, Target, Clock, Calendar as CalendarIcon, CheckCircle2, Pencil } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/app/calendario")({
 function CalendarioRoute() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Buscar todas as provas/metas futuras
   const { data: upcomingExams = [] } = useQuery({
@@ -32,7 +33,7 @@ function CalendarioRoute() {
       return (data as any[]).filter(g => g.target_date).map(g => ({
         id: g.id,
         title: g.title,
-        targetDate: new Date(g.target_date),
+        targetDate: new Date(g.target_date + "T12:00:00Z"),
         isActive: g.is_active,
         createdAt: new Date(g.created_at)
       })) as (Goal & { createdAt: Date })[];
@@ -177,21 +178,17 @@ function CalendarioRoute() {
                           {format(mainGoal.targetDate!, "d 'de' MMMM, yyyy", { locale: ptBR })}
                         </div>
                       </div>
-                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-lg leading-none">{getDaysRemaining(mainGoal.targetDate)}</span>
-                          <span className="text-[10px] uppercase text-muted-foreground mt-1">Dias</span>
+                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border flex items-center justify-center gap-2">
+                        <div className="flex flex-col items-center">
+                          <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(mainGoal.targetDate)}</span>
+                          <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                         </div>
-                        <input 
-                          type="date" 
-                          className="bg-transparent border-none text-muted-foreground text-xs cursor-pointer outline-none mt-2"
-                          value={mainGoal.targetDate ? mainGoal.targetDate.toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
-                            if(e.target.value) {
-                               updateGoalDateMutation.mutate({ id: mainGoal.id, newDate: e.target.value });
-                            }
-                          }} 
-                        />
+                        <button 
+                          onClick={() => navigate({ to: "/app/configuracoes" })}
+                          className="text-muted-foreground hover:text-primary transition-colors ml-2"
+                        >
+                          <Pencil size={14} />
+                        </button>
                       </div>
                     </div>
                   </CardContent>
@@ -229,21 +226,17 @@ function CalendarioRoute() {
                                 </div>
                               )}
                             </div>
-                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border">
-                              <div className="flex flex-col">
+                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border flex items-center justify-center gap-2">
+                              <div className="flex flex-col items-center">
                                 <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(exam.targetDate)}</span>
-                                <span className="text-[10px] uppercase text-primary/70 mt-1">Dias</span>
+                                <span className="text-[10px] uppercase text-primary mt-1 font-bold">Dias</span>
                               </div>
-                              <input 
-                                type="date" 
-                                className="bg-transparent border-none text-primary/70 text-xs cursor-pointer outline-none mt-2"
-                                value={exam.targetDate ? exam.targetDate.toISOString().split('T')[0] : ''}
-                                onChange={(e) => {
-                                  if(e.target.value) {
-                                     updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
-                                  }
-                                }} 
-                              />
+                              <button 
+                                onClick={() => navigate({ to: "/app/configuracoes" })}
+                                className="text-primary/70 hover:text-primary transition-colors ml-1"
+                              >
+                                <Pencil size={12} />
+                              </button>
                             </div>
                           </div>
                         </CardContent>

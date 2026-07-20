@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -26,6 +27,7 @@ import {
   Trash2,
   Plus,
   Save,
+  Pencil,
   Bell,
   Moon,
   Clock,
@@ -35,6 +37,62 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/app/configuracoes")({
   component: ConfiguracoesRoute,
 });
+
+function EditExamDialog({ exam, subjects, updateMutation }: any) {
+  const [open, setOpen] = useState(false);
+  
+  let parsed = { name: exam.title, subjectId: "none" };
+  try { parsed = JSON.parse(exam.title); } catch(e) {}
+  
+  const [name, setName] = useState(parsed.name);
+  const [subjectId, setSubjectId] = useState(parsed.subjectId);
+  const [targetDate, setTargetDate] = useState(exam.target_date ? new Date(exam.target_date + "T12:00:00Z").toISOString().split('T')[0] : '');
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      id: exam.id,
+      title: JSON.stringify({ name, subjectId }),
+      targetDate
+    });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+          <Pencil size={16} />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Prova</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Nome da Prova / Concurso</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: ENEM, Concurso BB..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Data da Prova</Label>
+            <Input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Matéria Relacionada</Label>
+            <Select value={subjectId} onValueChange={setSubjectId}>
+               <SelectTrigger><SelectValue placeholder="Selecione..."/></SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="none">Geral / Não se aplica</SelectItem>
+                 {subjects.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+               </SelectContent>
+            </Select>
+          </div>
+          <Button className="w-full text-zinc-900" onClick={handleSave}>Salvar Alterações</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 const DEFAULT_COLORS = [
   "#a8ff00",
@@ -159,7 +217,7 @@ function ConfiguracoesRoute() {
     if (goal) {
       setLocalGoal({
         title: goal.title || "",
-        targetDate: goal.target_date ? new Date(goal.target_date).toISOString().split("T")[0] : "",
+        targetDate: goal.target_date ? new Date(goal.target_date + "T12:00:00Z").toISOString().split("T")[0] : "",
       });
     }
   }, [goal]);
@@ -229,6 +287,19 @@ function ConfiguracoesRoute() {
       queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
       queryClient.invalidateQueries({ queryKey: ["nextExam"] });
       toast.success("Data da prova atualizada!");
+    }
+  });
+
+  const updateExamMutation = useMutation({
+    mutationFn: async ({ id, title, targetDate }: { id: string; title: string; targetDate: string }) => {
+      const { error } = await supabase.from("goals").update({ title, target_date: targetDate }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+      queryClient.invalidateQueries({ queryKey: ["nextExam"] });
+      toast.success("Prova atualizada!");
     }
   });
 
@@ -521,16 +592,7 @@ function ConfiguracoesRoute() {
                         <div className="flex flex-col">
                           <span className="font-bold text-sm">{parsed.name}</span>
                           <span className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                            <input 
-                              type="date" 
-                              className="bg-transparent border-none text-muted-foreground hover:text-foreground transition-colors cursor-pointer outline-none w-28"
-                              value={exam.target_date ? new Date(exam.target_date).toISOString().split('T')[0] : ''}
-                              onChange={(e) => {
-                                if(e.target.value) {
-                                   updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
-                                }
-                              }} 
-                            />
+                            <span>{exam.target_date ? new Date(exam.target_date + "T12:00:00Z").toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''}</span>
                             {subjectName !== "none" && (
                               <>
                                 <span className="opacity-50">•</span>
@@ -539,9 +601,12 @@ function ConfiguracoesRoute() {
                             )}
                           </span>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => deleteExamMutation.mutate(exam.id)} className="text-muted-foreground hover:text-destructive">
-                          <Trash2 size={16} />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <EditExamDialog exam={exam} subjects={subjects} updateMutation={updateExamMutation} />
+                          <Button variant="ghost" size="icon" onClick={() => deleteExamMutation.mutate(exam.id)} className="text-muted-foreground hover:text-destructive">
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
