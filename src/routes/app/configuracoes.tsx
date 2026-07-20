@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { UserProfile, Goal } from "@/types/models";
+import { UserProfile, Goal, Subject } from "@/types/models";
 import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
@@ -162,6 +162,61 @@ function ConfiguracoesRoute() {
       });
     }
   }, [goal]);
+
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("subjects").select("*").eq("user_id", user?.id);
+      if (error) throw error;
+      return data as Subject[];
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: exams = [] } = useQuery({
+    queryKey: ["exams", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("goals").select("*").eq("user_id", user?.id).eq("is_active", false).order("target_date", { ascending: true });
+      if (error) throw error;
+      return data as Goal[];
+    },
+    enabled: !!user?.id,
+  });
+
+  const [newExam, setNewExam] = useState({ title: "", targetDate: "", subjectId: "" });
+
+  const addExamMutation = useMutation({
+    mutationFn: async () => {
+      if (!newExam.title || !newExam.targetDate) throw new Error("Título e data são obrigatórios.");
+      const examTitleStr = JSON.stringify({ name: newExam.title, subjectId: newExam.subjectId, type: "exam" });
+      const { error } = await supabase.from("goals").insert({
+        user_id: user?.id,
+        title: examTitleStr,
+        target_date: newExam.targetDate,
+        is_active: false
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prova cadastrada com sucesso!");
+      setNewExam({ title: "", targetDate: "", subjectId: "" });
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] }); // dashboard/calendar
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const deleteExamMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("goals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prova removida com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+    }
+  });
 
   const updateGoalMutation = useMutation({
     mutationFn: async () => {
@@ -359,45 +414,112 @@ function ConfiguracoesRoute() {
 
         {/* ABA 2: OBJETIVO E MATÉRIAS */}
         <TabsContent value="objetivo" className="space-y-6">
+          {localProfile.studentType === "universidade" && (
+            <Card className="bg-surface-elevated border-border">
+              <CardHeader>
+                <CardTitle>Meta Atual (Semestre)</CardTitle>
+                <CardDescription>O seu semestre ou ano principal.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome/Número do Semestre (Ex: 4º Semestre)</Label>
+                    <Input
+                      value={localGoal.title}
+                      onChange={(e) => setLocalGoal({ ...localGoal, title: e.target.value })}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fim do Semestre (Opcional)</Label>
+                    <Input
+                      type="date"
+                      value={localGoal.targetDate}
+                      onChange={(e) => setLocalGoal({ ...localGoal, targetDate: e.target.value })}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="pt-4 flex justify-end">
+                  <Button onClick={handleSaveGoal} className="flex items-center gap-2">
+                    <Save size={16} /> Salvar Semestre
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="bg-surface-elevated border-border">
             <CardHeader>
-              <CardTitle>Meta Atual</CardTitle>
-              <CardDescription>Seu alvo principal no momento.</CardDescription>
+              <CardTitle>Próximas Provas</CardTitle>
+              <CardDescription>Cadastre as datas das suas provas e vincule às matérias.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-background/50 p-4 rounded-lg border border-border">
                 <div className="space-y-2">
-                  <Label>
-                    {localProfile.studentType === "universidade" ? "Nome/Número do Semestre (Ex: 4º Semestre)" :
-                     localProfile.studentType === "vestibular" ? "Nome do Vestibular" :
-                     localProfile.studentType === "concurso" ? "Nome do Concurso" :
-                     "Nome da Prova/Objetivo"}
-                  </Label>
-                  <Input
-                    value={localGoal.title}
-                    onChange={(e) => setLocalGoal({ ...localGoal, title: e.target.value })}
-                    className="bg-background"
+                  <Label>Nome da Prova</Label>
+                  <Input 
+                    placeholder="Ex: P1 de Cálculo"
+                    value={newExam.title}
+                    onChange={(e) => setNewExam({...newExam, title: e.target.value})}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>
-                    {localProfile.studentType === "universidade" ? "Fim do Semestre (Opcional)" :
-                     localProfile.studentType === "vestibular" || localProfile.studentType === "concurso" ? "Data da Prova (Opcional)" :
-                     "Data Alvo (Opcional)"}
-                  </Label>
-                  <Input
+                  <Label>Data</Label>
+                  <Input 
                     type="date"
-                    value={localGoal.targetDate}
-                    onChange={(e) => setLocalGoal({ ...localGoal, targetDate: e.target.value })}
-                    className="bg-background"
+                    value={newExam.targetDate}
+                    onChange={(e) => setNewExam({...newExam, targetDate: e.target.value})}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Matéria (Opcional)</Label>
+                  <Select value={newExam.subjectId} onValueChange={(val) => setNewExam({...newExam, subjectId: val})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma / Geral</SelectItem>
+                      {subjects.map(sub => (
+                        <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-3 flex justify-end mt-2">
+                  <Button onClick={() => addExamMutation.mutate()} disabled={!newExam.title || !newExam.targetDate} size="sm">
+                    <Plus size={16} className="mr-2" /> Adicionar Prova
+                  </Button>
+                </div>
               </div>
-              <div className="pt-4 flex justify-end">
-                <Button onClick={handleSaveGoal} className="flex items-center gap-2">
-                  <Save size={16} /> Salvar Objetivo
-                </Button>
-              </div>
+
+              {exams.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Provas Cadastradas</h3>
+                  {exams.map(exam => {
+                    let parsed = { name: exam.title, subjectId: "none" };
+                    try { parsed = JSON.parse(exam.title); } catch(e) {}
+                    const subjectName = subjects.find(s => s.id === parsed.subjectId)?.name || "Geral";
+                    
+                    return (
+                      <div key={exam.id} className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm">{parsed.name}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-2">
+                            <span>{new Date(exam.target_date!).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                            <span>•</span>
+                            <span className="text-primary">{subjectName}</span>
+                          </span>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => deleteExamMutation.mutate(exam.id)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

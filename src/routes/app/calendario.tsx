@@ -96,6 +96,9 @@ function CalendarioRoute() {
     return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
   };
 
+  const mainGoal = upcomingExams.find(e => e.isActive);
+  const specificExams = upcomingExams.filter(e => !e.isActive);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto pb-12">
       {/* HEADER */}
@@ -119,19 +122,19 @@ function CalendarioRoute() {
             <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <MapPin size={40} className="mb-2 opacity-50" />
               <p>Nenhuma prova agendada.</p>
-              <p className="text-sm">Vá em Configurações e adicione sua Meta Principal.</p>
+              <p className="text-sm">Vá em Configurações e adicione sua Meta Principal ou Provas.</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {upcomingExams.map((exam) => {
-              const daysLeft = getDaysRemaining(exam.targetDate!);
-              return (
-                <Card key={exam.id} className={`bg-[#21193a] border-border shadow-sm overflow-hidden ${exam.isActive ? 'ring-1 ring-primary/50' : ''}`}>
+          <div className="space-y-6">
+            {/* Main Goal (Semestre/Concurso Foco) */}
+            {mainGoal && (
+              <div className="grid grid-cols-1">
+                <Card className="bg-[#21193a] border-primary/50 shadow-sm overflow-hidden ring-1 ring-primary/50">
                   <div className="h-1 w-full bg-gradient-to-r from-primary to-purple-600" />
                   <CardHeader className="pb-2 pt-4">
-                    <CardTitle className="text-lg font-bold truncate" title={exam.title}>
-                      {exam.title}
+                    <CardTitle className="text-xl font-bold truncate flex items-center justify-between" title={mainGoal.title}>
+                      <span>{mainGoal.title} <span className="ml-2 text-xs font-normal text-muted-foreground uppercase tracking-widest px-2 py-1 bg-primary/10 rounded-full text-primary">Meta Principal</span></span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -139,21 +142,66 @@ function CalendarioRoute() {
                       <div className="space-y-1">
                         <div className="flex items-center text-sm text-muted-foreground">
                           <CalendarIcon size={14} className="mr-1" />
-                          {format(exam.targetDate!, "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                          {format(mainGoal.targetDate!, "d 'de' MMMM, yyyy", { locale: ptBR })}
                         </div>
                       </div>
-                      <div className="flex flex-col items-center justify-center bg-background rounded-lg px-3 py-1.5 border border-border">
-                        <span className="text-xl font-display font-bold text-foreground leading-none">{daysLeft}</span>
+                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border">
+                        <span className="block text-2xl font-bold font-display leading-none">{getDaysRemaining(mainGoal.targetDate!)}</span>
                         <span className="text-[10px] uppercase font-bold text-muted-foreground">Dias</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
+              </div>
+            )}
+
+            {/* Specific Exams */}
+            {specificExams.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-3">Provas Cadastradas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {specificExams.map((exam) => {
+                    const daysLeft = getDaysRemaining(exam.targetDate!);
+                    let parsed = { name: exam.title, subjectId: "none" };
+                    try { parsed = JSON.parse(exam.title); } catch(e) {}
+                    const subjectName = subjects.find(s => s.id === parsed.subjectId)?.name;
+
+                    return (
+                      <Card key={exam.id} className="bg-[#17122b] border-border shadow-sm overflow-hidden">
+                        <CardHeader className="pb-2 pt-4">
+                          <CardTitle className="text-lg font-bold truncate" title={parsed.name}>
+                            {parsed.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex justify-between items-end">
+                            <div className="space-y-1">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <CalendarIcon size={14} className="mr-1" />
+                                {format(exam.targetDate!, "d 'de' MMM, yyyy", { locale: ptBR })}
+                              </div>
+                              {subjectName && (
+                                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full inline-block mt-1">
+                                  {subjectName}
+                                </div>
+                              )}
+                            </div>
+                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border">
+                              <span className="block text-xl font-bold font-display leading-none text-primary">{daysLeft}</span>
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground">Dias</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
 
       {/* AGENDA DA SEMANA */}
       <div className="space-y-4">

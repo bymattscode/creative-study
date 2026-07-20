@@ -67,6 +67,25 @@ function DashboardRoute() {
     enabled: !!user,
   });
 
+  const { data: nextExam } = useQuery({
+    queryKey: ["nextExam", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", false)
+        .gte("target_date", new Date().toISOString().split('T')[0])
+        .order("target_date", { ascending: true })
+        .limit(1)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data || null;
+    },
+    enabled: !!user,
+  });
+
   const { data: prefs } = useQuery({
     queryKey: ["prefs", user?.id],
     queryFn: async () => {
@@ -217,13 +236,14 @@ function DashboardRoute() {
     return "Boa noite";
   };
 
-  const getDaysRemaining = (targetDate?: Date) => {
+  const getDaysRemaining = (targetDate?: Date | string) => {
     if (!targetDate) return null;
     const diff = new Date(targetDate).getTime() - new Date().getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
   };
 
   const daysRemaining = goal?.targetDate ? getDaysRemaining(goal.targetDate) : null;
+  const nextExamDaysRemaining = nextExam?.target_date ? getDaysRemaining(nextExam.target_date) : null;
 
   // Calculando Horas Líquidas Totais
   const totalMinutes = history.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
@@ -448,33 +468,62 @@ function DashboardRoute() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Coluna Esquerda: Meta e Métricas */}
         <div className="space-y-6 md:col-span-1">
-          {/* Card: Objetivo */}
-          <Card className="bg-[#21193a] border-border shadow-sm">
+        <div className="space-y-6 md:col-span-1">
+          {/* Card: Objetivo Principal (Apenas Univ) */}
+          {profile?.studentType === "universidade" && (
+            <Card className="bg-[#21193a] border-border shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
+                  <span>Final do Semestre</span>
+                  <Target size={16} className="text-primary" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-display leading-tight mb-4">
+                  {goal ? goal.title : "Semestre não definido"}
+                </div>
+
+                {daysRemaining !== null && (
+                  <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground uppercase">Contagem Regressiva</span>
+                      <span className="font-bold text-lg">{daysRemaining} dias</span>
+                    </div>
+                    <Clock className="text-muted-foreground" size={24} />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Card: Próxima Prova */}
+          <Card className="bg-[#2a0863] border-border shadow-sm ring-1 ring-primary/20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
-                <span>
-                  {profile?.studentType === "universidade" ? "Semestre Atual" :
-                   profile?.studentType === "vestibular" ? "Vestibular Foco" :
-                   profile?.studentType === "concurso" ? "Concurso Foco" :
-                   "Alvo Principal"}
-                </span>
-                <Target size={16} className="text-primary" />
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary/80">
+                <span>Próxima Prova</span>
+                <CalendarDays size={16} className="text-primary" />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-display leading-tight mb-4">
-                {goal ? goal.title : "Sem meta definida"}
+              <div className="text-xl font-bold font-display leading-tight mb-4 text-white">
+                {nextExam ? (
+                  (() => {
+                    let parsed = { name: nextExam.title };
+                    try { parsed = JSON.parse(nextExam.title); } catch(e) {}
+                    return parsed.name;
+                  })()
+                ) : (
+                  "Nenhuma prova agendada"
+                )}
               </div>
 
-              {daysRemaining !== null && (
+              {nextExamDaysRemaining !== null && (
                 <div className="bg-background rounded-lg p-3 flex items-center justify-between border border-border">
                   <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground uppercase">
-                      Contagem Regressiva
-                    </span>
-                    <span className="font-bold text-lg">{daysRemaining} dias</span>
+                    <span className="text-xs text-muted-foreground uppercase">Faltam apenas</span>
+                    <span className="font-bold text-lg text-primary">{nextExamDaysRemaining} dias</span>
                   </div>
-                  <Clock className="text-muted-foreground" size={24} />
+                  <Target className="text-primary" size={24} />
                 </div>
               )}
             </CardContent>

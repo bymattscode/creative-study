@@ -144,9 +144,45 @@ function RevisoesRoute() {
     return d > today;
   };
 
-  const lateReviews = reviews.filter((r) => isLate(r.next_review_date));
-  const todayReviews = reviews.filter((r) => isToday(r.next_review_date));
-  const futureReviews = reviews.filter((r) => isFuture(r.next_review_date));
+  const { data: upcomingExams = [] } = useQuery({
+    queryKey: ["upcomingExams", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("goals")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("is_active", false)
+        .gte("target_date", new Date().toISOString().split('T')[0]);
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const highPrioritySubjectIds = upcomingExams.reduce((acc: string[], exam: any) => {
+    let parsed = { subjectId: "none" };
+    try { parsed = JSON.parse(exam.title); } catch(e) {}
+    if (parsed.subjectId && parsed.subjectId !== "none") {
+      const diff = new Date(exam.target_date).getTime() - new Date().getTime();
+      const daysLeft = Math.ceil(diff / (1000 * 3600 * 24));
+      if (daysLeft <= 7 && daysLeft >= 0) {
+        acc.push(parsed.subjectId);
+      }
+    }
+    return acc;
+  }, []);
+
+  const isHighPriority = (subjectId: string) => highPrioritySubjectIds.includes(subjectId);
+
+  const prioritySort = (a: DbReviewItem, b: DbReviewItem) => {
+    const aPriority = isHighPriority(a.subject_id) ? 1 : 0;
+    const bPriority = isHighPriority(b.subject_id) ? 1 : 0;
+    if (aPriority !== bPriority) return bPriority - aPriority;
+    return new Date(a.next_review_date).getTime() - new Date(b.next_review_date).getTime();
+  };
+
+  const lateReviews = reviews.filter((r) => isLate(r.next_review_date)).sort(prioritySort);
+  const todayReviews = reviews.filter((r) => isToday(r.next_review_date)).sort(prioritySort);
+  const futureReviews = reviews.filter((r) => isFuture(r.next_review_date)).sort(prioritySort);
 
   // Mutations
   const addReviewMutation = useMutation({
@@ -299,17 +335,17 @@ function RevisoesRoute() {
     const isExpanded = expandedCard === item.id;
 
     return (
-      <Card className="bg-surface-elevated border-border shadow-sm mb-3 overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-glow group">
+      <Card className={`bg-surface border-border overflow-hidden mb-3 transition-all duration-300 hover:border-primary/50 hover:shadow-glow group ${isHighPriority(item.subject_id) ? 'ring-1 ring-primary' : ''}`}>
+        <div className="h-1 w-full" style={{ backgroundColor: getSubjectColor(item.subject_id) }} />
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getSubjectColor(item.subject_id) }}
-              />
               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 {getSubjectName(item.subject_id)}
               </span>
+              {isHighPriority(item.subject_id) && (
+                <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Prova Próxima</span>
+              )}
             </div>
             {getPriorityBadge(item.priority)}
           </div>
