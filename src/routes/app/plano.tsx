@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Subject } from "@/types/models";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
@@ -144,6 +144,11 @@ function PlanoSemanalRoute() {
   const queryClient = useQueryClient();
 
   const [editingTask, setEditingTask] = useState<{ dayIdx: number; task: PlanTask } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Queries
   const { data: subjects = [] } = useQuery({
@@ -649,24 +654,26 @@ function PlanoSemanalRoute() {
               </CardHeader>
               <CardContent>
                 <div className="h-[220px] w-full relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={distribution.data}
-                        dataKey="duration"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={70}
-                        outerRadius={95}
-                        stroke="none"
-                      >
-                        {distribution.data.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {isMounted && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={distribution.data}
+                          dataKey="duration"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={70}
+                          outerRadius={95}
+                          stroke="none"
+                        >
+                          {distribution.data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-2xl font-bold font-display">
                       {Math.floor(distribution.totalMinutes / 60)}h {distribution.totalMinutes % 60 > 0 ? `${distribution.totalMinutes % 60}m` : ''}
