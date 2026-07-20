@@ -183,8 +183,8 @@ function MateriasRoute() {
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full h-full pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Central do Edital</h1>
-          <p className="text-muted-foreground text-sm">Gerencie suas disciplinas e os assuntos que você precisa dominar.</p>
+          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Central de Matérias</h1>
+          <p className="text-muted-foreground mt-1">Gerencie suas disciplinas e os conteúdos que você precisa dominar.</p>
         </div>
         <Button onClick={() => handleOpenSubjectDialog()} className="flex items-center gap-2">
           <Plus size={18} /> Adicionar Matéria
@@ -216,16 +216,8 @@ function MateriasRoute() {
                       <div className="w-4 h-4 rounded-full" style={{ backgroundColor: sub.color }} />
                       <span className="font-bold text-base md:text-lg">{sub.name}</span>
                       <span className="text-xs px-2 py-1 bg-background rounded-full text-muted-foreground font-medium hidden sm:inline-block">
-                        {subTopics.length} tópicos
+                        {subTopics.length} conteúdos
                       </span>
-                      {sub.review_model && (
-                        <span className="text-xs px-2 py-1 border border-primary/30 text-primary rounded-full font-medium hidden sm:inline-block ml-auto mr-4">
-                          {sub.review_model === "none" ? "Sem Revisão" : 
-                           sub.review_model === "short_term" ? "Curto Prazo" :
-                           sub.review_model === "bimonthly" ? "Bimestral" :
-                           sub.review_model === "semiannual" ? "Semestral" : "Clássico"}
-                        </span>
-                      )}
                     </div>
                   </AccordionTrigger>
                   

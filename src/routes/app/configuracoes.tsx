@@ -389,7 +389,7 @@ function ConfiguracoesRoute() {
             <CardContent className="space-y-6">
               <div className="flex flex-col items-center justify-center p-8 bg-background/50 rounded-lg border border-border border-dashed text-center">
                 <Target className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                <h3 className="text-lg font-medium">Sua Central do Edital</h3>
+                <h3 className="text-lg font-medium">Sua Central de Matérias</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-4">
                   O gerenciamento de matérias e assuntos (tópicos) foi movido para uma tela dedicada, onde você tem controle total sobre o seu edital.
                 </p>
