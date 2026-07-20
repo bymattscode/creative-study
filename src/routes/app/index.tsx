@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/")({
   component: DashboardRoute,
