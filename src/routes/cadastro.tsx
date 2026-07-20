@@ -142,13 +142,14 @@ function CadastroRoute() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Telefone / WhatsApp (Opcional)</Label>
+            <Label htmlFor="phone">Telefone / WhatsApp</Label>
             <Input 
               id="phone" 
               type="tel" 
               placeholder="(11) 99999-9999"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
