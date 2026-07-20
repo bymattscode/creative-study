@@ -19,6 +19,8 @@ import {
   Gauge,
   Plus,
   History,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import {
   Dialog,
@@ -60,6 +62,9 @@ function RevisoesRoute() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newReviewSubject, setNewReviewSubject] = useState("");
   const [newReviewTopic, setNewReviewTopic] = useState("");
+
+  const [editingReviewItem, setEditingReviewItem] = useState<DbReviewItem | null>(null);
+  const [editTopicName, setEditTopicName] = useState("");
 
   // Queries
   const { data: subjects = [] } = useQuery({
@@ -214,6 +219,34 @@ function RevisoesRoute() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const deleteReviewMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("review_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviewItems"] });
+      toast.success("Revisão apagada com sucesso!");
+    },
+    onError: (err: any) => toast.error(`Erro ao apagar: ${err.message}`),
+  });
+
+  const editReviewMutation = useMutation({
+    mutationFn: async ({ id, topic_name }: { id: string; topic_name: string }) => {
+      const { error } = await supabase
+        .from("review_items")
+        .update({ topic_name })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviewItems"] });
+      toast.success("Revisão atualizada com sucesso!");
+      setEditingReviewItem(null);
+    },
+    onError: (err: any) => toast.error(`Erro ao atualizar: ${err.message}`),
+  });
+
   const handleReviewMutation = useMutation({
     mutationFn: async ({
       item,
@@ -347,7 +380,34 @@ function RevisoesRoute() {
                 <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Prova Próxima</span>
               )}
             </div>
-            {getPriorityBadge(item.priority)}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditTopicName(item.topic_name);
+                  setEditingReviewItem(item);
+                }}
+              >
+                <Pencil size={14} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm("Tem certeza que deseja apagar esta revisão?")) {
+                    deleteReviewMutation.mutate(item.id);
+                  }
+                }}
+              >
+                <Trash2 size={14} />
+              </Button>
+              {getPriorityBadge(item.priority)}
+            </div>
           </div>
 
           <h3 className="text-lg font-bold mb-2">{item.topic_name}</h3>
@@ -590,6 +650,44 @@ function RevisoesRoute() {
               disabled={addReviewMutation.isPending || !newReviewSubject || !newReviewTopic}
             >
               {addReviewMutation.isPending ? "Agendando..." : "Agendar para Hoje"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar Revisão */}
+      <Dialog open={!!editingReviewItem} onOpenChange={(open) => !open && setEditingReviewItem(null)}>
+        <DialogContent className="bg-surface border-border">
+          <DialogHeader>
+            <DialogTitle>Editar Revisão</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Tópico / Assunto</Label>
+              <Input
+                value={editTopicName}
+                onChange={(e) => setEditTopicName(e.target.value)}
+                placeholder="Ex: Revolução Francesa"
+                className="bg-background border-border"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingReviewItem(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingReviewItem) {
+                  editReviewMutation.mutate({
+                    id: editingReviewItem.id,
+                    topic_name: editTopicName,
+                  });
+                }
+              }}
+              disabled={editReviewMutation.isPending || !editTopicName.trim()}
+            >
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
