@@ -182,6 +182,20 @@ function DashboardRoute() {
     enabled: !!weeklyPlan,
   });
 
+  const { data: planItems = [] } = useQuery({
+    queryKey: ["weekPlanItems", weeklyPlan?.id],
+    queryFn: async () => {
+      if (!weeklyPlan) return [];
+      const { data, error } = await supabase
+        .from("plan_items")
+        .select("*")
+        .eq("weekly_plan_id", weeklyPlan.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!weeklyPlan,
+  });
+
   const toggleMissionMutation = useMutation({
     mutationFn: async (mission: any) => {
       const newStatus = !mission.completed;
