@@ -1,5 +1,5 @@
--- Criar tabela de Perfis de Usuário
-CREATE TABLE user_profiles (
+-- 1. Perfis de Usuário
+CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   name TEXT,
@@ -8,30 +8,37 @@ CREATE TABLE user_profiles (
   UNIQUE(user_id)
 );
 
--- Habilitar RLS e Políticas para user_profiles
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Removemos a política se ela já existir para evitar erro ao recriar
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios perfis" ON user_profiles;
+DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios perfis" ON user_profiles;
+DROP POLICY IF EXISTS "Usuários podem inserir seus próprios perfis" ON user_profiles;
+
 CREATE POLICY "Usuários podem ver seus próprios perfis" ON user_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Usuários podem atualizar seus próprios perfis" ON user_profiles FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Usuários podem inserir seus próprios perfis" ON user_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Trigger para criar perfil automaticamente quando um usuário se cadastra
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.user_profiles (user_id)
-  VALUES (new.id);
+  VALUES (new.id)
+  ON CONFLICT (user_id) DO NOTHING; -- Proteção extra se o perfil já existir
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+-- Removemos a trigger antes de recriar
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -------------------------------------------------------------------------------
 
--- Criar tabela de Objetivos (Goals)
-CREATE TABLE goals (
+-- 2. Objetivos (Goals)
+CREATE TABLE IF NOT EXISTS goals (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
@@ -40,12 +47,13 @@ CREATE TABLE goals (
 );
 
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Usuários gerenciam seus próprios objetivos" ON goals;
 CREATE POLICY "Usuários gerenciam seus próprios objetivos" ON goals FOR ALL USING (auth.uid() = user_id);
 
 -------------------------------------------------------------------------------
 
--- Criar tabela de Matérias (Subjects)
-CREATE TABLE subjects (
+-- 3. Matérias (Subjects)
+CREATE TABLE IF NOT EXISTS subjects (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   goal_id UUID REFERENCES goals(id) ON DELETE SET NULL,
@@ -56,12 +64,13 @@ CREATE TABLE subjects (
 );
 
 ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Usuários gerenciam suas próprias matérias" ON subjects;
 CREATE POLICY "Usuários gerenciam suas próprias matérias" ON subjects FOR ALL USING (auth.uid() = user_id);
 
 -------------------------------------------------------------------------------
 
--- Criar tabela de Tópicos (Topics)
-CREATE TABLE topics (
+-- 4. Tópicos (Topics)
+CREATE TABLE IF NOT EXISTS topics (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -69,7 +78,7 @@ CREATE TABLE topics (
 );
 
 ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
--- Para topics, verificamos se o usuário é dono da matéria
+DROP POLICY IF EXISTS "Usuários gerenciam os tópicos de suas matérias" ON topics;
 CREATE POLICY "Usuários gerenciam os tópicos de suas matérias" ON topics FOR ALL 
 USING (
   EXISTS (
