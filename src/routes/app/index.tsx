@@ -325,33 +325,33 @@ function DashboardRoute() {
 
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-secondary transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
           asChild
         >
           <Link to="/app/revisoes">
-            <Repeat size={24} className="text-secondary" />
+            <Repeat size={24} className="text-primary" />
             <span>Revisar</span>
           </Link>
         </Button>
 
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
           asChild
         >
           <Link to="/app/plano">
-            <CalendarDays size={24} className="text-muted-foreground" />
+            <CalendarDays size={24} className="text-primary" />
             <span>Meu Plano</span>
           </Link>
         </Button>
 
         <Button
           variant="outline"
-          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated transition-all border-border"
+          className="h-24 flex-col gap-2 bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all border-border"
           asChild
         >
           <Link to="/app/desempenho">
-            <BarChart3 size={24} className="text-muted-foreground" />
+            <BarChart3 size={24} className="text-primary" />
             <span>Desempenho</span>
           </Link>
         </Button>
