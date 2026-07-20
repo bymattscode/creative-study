@@ -709,45 +709,48 @@ function DashboardRoute() {
                  profile?.studentType === "outro" ? "Progresso Geral" :
                  "Progresso no Edital"}
               </CardTitle>
-              <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
+              <CardDescription>Baseado no cronograma da semana</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 flex-1 relative min-h-[300px]">
-              {subjects.length > 0 ? (
-                <div className="absolute inset-0 pt-4 px-6 pb-6">
-                  <ScrollArea className="h-full pr-4">
-                    <div className="space-y-5">
-                    {subjects.map((sub) => {
-                      const progressVal = getSubjectProgress(sub.id);
-                      return (
-                      <div key={sub.id} className="space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-medium truncate pr-2">{sub.name}</span>
-                          <span className="text-muted-foreground font-bold">
-                            {progressVal}%
-                          </span>
+              {(() => {
+                const activeSubjects = subjects.filter(sub => planItems.some((item: any) => item.subject_id === sub.id));
+                return activeSubjects.length > 0 ? (
+                  <div className="absolute inset-0 pt-4 px-6 pb-6">
+                    <ScrollArea className="h-full pr-4">
+                      <div className="space-y-5">
+                      {activeSubjects.map((sub) => {
+                        const progressVal = getSubjectProgress(sub.id);
+                        return (
+                        <div key={sub.id} className="space-y-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="font-medium truncate pr-2">{sub.name}</span>
+                            <span className="text-muted-foreground font-bold">
+                              {progressVal}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={progressVal}
+                            className="h-1.5"
+                            indicatorColor={sub.color || "bg-primary"}
+                          />
                         </div>
-                        <Progress
-                          value={progressVal}
-                          className="h-1.5"
-                          indicatorColor={sub.color || "bg-primary"}
-                        />
+                      )})}
                       </div>
-                    )})}
-                    </div>
-                  </ScrollArea>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
-                  <p className="text-sm font-bold text-foreground">Sua lista está vazia</p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
-                    Cadastre suas matérias nas configurações para começar.
-                  </p>
-                  <Button variant="link" className="text-primary text-xs mt-2" asChild>
-                    <Link to="/app/configuracoes">Ir para Configurações</Link>
-                  </Button>
-                </div>
-              )}
+                    </ScrollArea>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
+                    <p className="text-sm font-bold text-foreground">Sua lista está vazia</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+                      Nenhuma matéria programada no seu cronograma atual.
+                    </p>
+                    <Button variant="link" className="text-primary text-xs mt-2" asChild>
+                      <Link to="/app/plano">Ir para Plano Semanal</Link>
+                    </Button>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
