@@ -48,9 +48,9 @@ function OnboardingWizard() {
     goalName: "",
     goalDate: "",
     minutesPerDay: 240,
-    studyDays: [1, 2, 3, 4, 5],
-    dailyStudyHours: { "1": 240, "2": 240, "3": 240, "4": 240, "5": 240 },
-    preferredTime: "",
+    studyDays: [],
+    dailyStudyHours: {},
+    preferredTime: [],
     subjects: [{ name: "", difficulty: "Médio" }],
   });
 
@@ -309,24 +309,35 @@ function OnboardingWizard() {
                 )}
 
                 <div className="space-y-3">
-                  <Label>Turno Preferido</Label>
+                  <Label>Turnos Preferidos</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Selecione todos os turnos em que você costuma estudar.
+                  </p>
                   <div className="grid grid-cols-2 gap-3">
-                    {["manhã", "tarde", "noite", "madrugada"].map((turno) => (
-                      <Card
-                        key={turno}
-                        className={`p-4 cursor-pointer transition-all border-2 text-center capitalize ${data.preferredTime === turno ? "border-primary bg-primary/10 text-primary font-bold" : "border-transparent hover:border-border text-muted-foreground"}`}
-                        onClick={() => setData({ ...data, preferredTime: turno as any })}
-                      >
-                        {turno}
-                      </Card>
-                    ))}
+                    {["manhã", "tarde", "noite", "madrugada"].map((turno) => {
+                      const isSelected = data.preferredTime.includes(turno);
+                      return (
+                        <Card
+                          key={turno}
+                          className={`p-4 cursor-pointer transition-all border-2 text-center capitalize ${isSelected ? "border-primary bg-primary/10 text-primary font-bold" : "border-transparent hover:border-border text-muted-foreground"}`}
+                          onClick={() => {
+                            const newTimes = isSelected 
+                              ? data.preferredTime.filter(t => t !== turno)
+                              : [...data.preferredTime, turno];
+                            setData({ ...data, preferredTime: newTimes });
+                          }}
+                        >
+                          {turno}
+                        </Card>
+                      )
+                    })}
                   </div>
                 </div>
 
                 <Button
                   className="w-full h-12 text-lg mt-4"
                   onClick={nextStep}
-                  disabled={!data.preferredTime || data.studyDays.length === 0}
+                  disabled={data.preferredTime.length === 0 || data.studyDays.length === 0}
                 >
                   Continuar <ChevronRight size={20} className="ml-2" />
                 </Button>

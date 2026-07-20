@@ -9,7 +9,7 @@ export interface OnboardingData {
   minutesPerDay: number; // legacy
   studyDays: number[];
   dailyStudyHours: Record<string, number>;
-  preferredTime: "manhã" | "tarde" | "noite" | "madrugada" | "";
+  preferredTime: string[];
   subjects: Array<{ name: string; difficulty: "Muito Fácil" | "Fácil" | "Médio" | "Difícil" | "Muito Difícil" }>;
 }
 
@@ -56,7 +56,7 @@ export const saveOnboardingData = async (userId: string, data: OnboardingData) =
         minutes_per_day: data.minutesPerDay,
         study_days: data.studyDays,
         daily_study_hours: data.dailyStudyHours,
-        preferred_time: data.preferredTime,
+        preferred_time: data.preferredTime.join(", "),
         global_review_model: 'classic',
       }, { onConflict: "user_id" });
       
