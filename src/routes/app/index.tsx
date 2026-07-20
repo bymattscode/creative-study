@@ -700,9 +700,9 @@ function DashboardRoute() {
         </div>
 
         {/* Coluna Direita: Progresso por Matéria */}
-        <div className="space-y-6 md:col-span-1">
-          <Card className="bg-surface-elevated border-border shadow-sm h-full">
-            <CardHeader className="border-b border-border/50 pb-4">
+        <div className="space-y-6 md:col-span-1 flex flex-col">
+          <Card className="bg-surface-elevated border-border shadow-sm h-full flex flex-col">
+            <CardHeader className="border-b border-border/50 pb-4 flex-shrink-0">
               <CardTitle className="font-display text-lg">
                 {profile?.studentType === "universidade" ? "Progresso no Semestre" :
                  profile?.studentType === "vestibular" ? "Progresso no Vestibular" :
@@ -711,10 +711,11 @@ function DashboardRoute() {
               </CardTitle>
               <CardDescription>Baseado nas disciplinas cadastradas</CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 flex-1 relative min-h-[300px]">
               {subjects.length > 0 ? (
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-5">
+                <div className="absolute inset-0 pt-4 px-6 pb-6">
+                  <ScrollArea className="h-full pr-4">
+                    <div className="space-y-5">
                     {subjects.map((sub) => {
                       const progressVal = getSubjectProgress(sub.id);
                       return (
@@ -732,8 +733,9 @@ function DashboardRoute() {
                         />
                       </div>
                     )})}
-                  </div>
-                </ScrollArea>
+                    </div>
+                  </ScrollArea>
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
