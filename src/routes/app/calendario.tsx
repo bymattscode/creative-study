@@ -163,7 +163,7 @@ function CalendarioRoute() {
             {/* Main Goal (Semestre/Concurso Foco) */}
             {mainGoal && (
               <div className="grid grid-cols-1">
-                <Card className="bg-[#21193a] border-primary/50 shadow-sm overflow-hidden ring-1 ring-primary/50">
+                <Card className="bg-[#21193a] border-primary/50 shadow-sm overflow-hidden ring-1 ring-primary/50 group">
                   <div className="h-1 w-full bg-gradient-to-r from-primary to-purple-600" />
                   <CardHeader className="pb-2 pt-4">
                     <CardTitle className="text-xl font-bold truncate flex items-center justify-between" title={mainGoal.title}>
@@ -185,7 +185,7 @@ function CalendarioRoute() {
                         </div>
                         <button 
                           onClick={() => navigate({ to: "/app/configuracoes" })}
-                          className="text-muted-foreground hover:text-primary transition-colors ml-2"
+                          className="text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 ml-2"
                         >
                           <Pencil size={14} />
                         </button>
@@ -207,7 +207,7 @@ function CalendarioRoute() {
                     const subjectName = subjects.find(s => s.id === parsed.subjectId)?.name;
 
                     return (
-                      <Card key={exam.id} className="bg-[#17122b] border-border shadow-sm overflow-hidden">
+                      <Card key={exam.id} className="bg-[#17122b] border-border shadow-sm overflow-hidden group">
                         <CardHeader className="pb-2 pt-4">
                           <CardTitle className="text-lg font-bold truncate" title={parsed.name}>
                             {parsed.name}
@@ -233,7 +233,7 @@ function CalendarioRoute() {
                               </div>
                               <button 
                                 onClick={() => navigate({ to: "/app/configuracoes" })}
-                                className="text-primary/70 hover:text-primary transition-colors ml-1"
+                                className="text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 ml-1"
                               >
                                 <Pencil size={12} />
                               </button>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { UserProfile, Goal, Subject, StudySession, ReviewItem } from "@/types/models";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +34,7 @@ export const Route = createFileRoute("/app/")({
 function DashboardRoute() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   useEffect(() => {
     trackEvent("dashboard_viewed");
@@ -495,12 +496,15 @@ function DashboardRoute() {
         <div className="space-y-6 md:col-span-1">
           {/* Card: Objetivo Principal (Apenas Univ) */}
           {profile?.studentType === "universidade" && (
-            <Card className="bg-[#21193a] border-border shadow-sm">
+            <Card className="bg-[#21193a] border-border shadow-sm group">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
                   <span>Final do Semestre</span>
                   <div className="flex items-center gap-2">
-                    <button className="text-muted-foreground hover:text-primary transition-colors">
+                    <button 
+                      onClick={() => navigate({ to: "/app/configuracoes" })}
+                      className="text-muted-foreground hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    >
                       <Pencil size={14} />
                     </button>
                     <Target size={16} className="text-primary" />
@@ -529,12 +533,15 @@ function DashboardRoute() {
           )}
 
           {/* Card: Próxima Prova */}
-            <Card className="bg-[#2a0863] border-border shadow-sm ring-1 ring-primary/20">
+            <Card className="bg-[#2a0863] border-border shadow-sm ring-1 ring-primary/20 group">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary">
                 <span>Próxima Prova</span>
                 <div className="flex items-center gap-2">
-                  <button className="text-primary/70 hover:text-primary transition-colors">
+                  <button 
+                    onClick={() => navigate({ to: "/app/configuracoes" })}
+                    className="text-primary/70 hover:text-primary transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                  >
                     <Pencil size={14} />
                   </button>
                   <CalendarDays size={16} className="text-primary" />
