@@ -179,7 +179,8 @@ function PlanoSemanalRoute() {
   const { data: weeklyPlan, isLoading: loadingPlan } = useQuery({
     queryKey: ["weeklyPlan", user?.id],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       const { data, error } = await supabase
         .from("weekly_plans")
         .select("*")
@@ -265,8 +266,8 @@ function PlanoSemanalRoute() {
           .insert([
             {
               user_id: user?.id,
-              start_date: start.toISOString().split("T")[0],
-              end_date: end.toISOString().split("T")[0],
+              start_date: `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-${String(start.getDate()).padStart(2,'0')}`,
+              end_date: `${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`,
             },
           ])
           .select()

@@ -118,7 +118,8 @@ function DashboardRoute() {
   const { data: weeklyPlan } = useQuery({
     queryKey: ["weeklyPlan", user?.id],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       const { data, error } = await supabase
         .from("weekly_plans")
         .select("*")
@@ -164,8 +165,9 @@ function DashboardRoute() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Bom dia";
-    if (hour < 18) return "Boa tarde";
+    if (hour >= 0 && hour < 6) return "Boa madrugada";
+    if (hour >= 6 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
     return "Boa noite";
   };
 
