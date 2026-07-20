@@ -520,24 +520,23 @@ function ConfiguracoesRoute() {
                       <div key={exam.id} className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
                         <div className="flex flex-col">
                           <span className="font-bold text-sm">{parsed.name}</span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-2">
-                            <div className="relative group flex items-center">
-                              <span className="hover:text-primary transition-colors cursor-pointer border-b border-dashed border-transparent group-hover:border-primary">
-                                {new Date(exam.target_date!).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                              </span>
-                              <input 
-                                type="date" 
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
-                                onChange={(e) => {
-                                  if(e.target.value) {
-                                     updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
-                                  }
-                                }} 
-                              />
-                            </div>
-                            <span>•</span>
-                            <span className="text-primary">{subjectName}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                            <input 
+                              type="date" 
+                              className="bg-transparent border-none text-muted-foreground hover:text-foreground transition-colors cursor-pointer outline-none w-28"
+                              value={exam.target_date ? new Date(exam.target_date).toISOString().split('T')[0] : ''}
+                              onChange={(e) => {
+                                if(e.target.value) {
+                                   updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });
+                                }
+                              }} 
+                            />
+                            {subjectName !== "none" && (
+                              <>
+                                <span className="opacity-50">•</span>
+                                <span className="text-primary">{subjectName}</span>
+                              </>
+                            )}
                           </span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deleteExamMutation.mutate(exam.id)} className="text-muted-foreground hover:text-destructive">

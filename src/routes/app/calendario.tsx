@@ -33,8 +33,9 @@ function CalendarioRoute() {
         id: g.id,
         title: g.title,
         targetDate: new Date(g.target_date),
-        isActive: g.is_active
-      })) as Goal[];
+        isActive: g.is_active,
+        createdAt: new Date(g.created_at)
+      })) as (Goal & { createdAt: Date })[];
     },
     enabled: !!user?.id,
   });
@@ -124,7 +125,7 @@ function CalendarioRoute() {
     return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
   };
 
-  const mainGoal = upcomingExams.find(e => e.isActive);
+  const mainGoal = upcomingExams.filter(e => e.isActive).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
   const specificExams = upcomingExams.filter(e => !e.isActive);
 
   return (
@@ -176,16 +177,15 @@ function CalendarioRoute() {
                           {format(mainGoal.targetDate!, "d 'de' MMMM, yyyy", { locale: ptBR })}
                         </div>
                       </div>
-                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border relative group overflow-hidden">
-                        <span className="block text-2xl font-bold font-display leading-none group-hover:hidden">{getDaysRemaining(mainGoal.targetDate!)}</span>
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground group-hover:hidden">Dias</span>
-                        <div className="hidden group-hover:flex flex-col items-center justify-center h-full text-xs text-primary font-bold uppercase">
-                          Editar
+                      <div className="bg-background rounded-lg p-2 text-center min-w-[80px] border border-border">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-lg leading-none">{getDaysRemaining(mainGoal.targetDate)}</span>
+                          <span className="text-[10px] uppercase text-muted-foreground mt-1">Dias</span>
                         </div>
                         <input 
                           type="date" 
-                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                          onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
+                          className="bg-transparent border-none text-muted-foreground text-xs cursor-pointer outline-none mt-2"
+                          value={mainGoal.targetDate ? mainGoal.targetDate.toISOString().split('T')[0] : ''}
                           onChange={(e) => {
                             if(e.target.value) {
                                updateGoalDateMutation.mutate({ id: mainGoal.id, newDate: e.target.value });
@@ -205,7 +205,6 @@ function CalendarioRoute() {
                 <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-3">Provas Cadastradas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {specificExams.map((exam) => {
-                    const daysLeft = getDaysRemaining(exam.targetDate!);
                     let parsed = { name: exam.title, subjectId: "none" };
                     try { parsed = JSON.parse(exam.title); } catch(e) {}
                     const subjectName = subjects.find(s => s.id === parsed.subjectId)?.name;
@@ -230,16 +229,15 @@ function CalendarioRoute() {
                                 </div>
                               )}
                             </div>
-                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border relative group overflow-hidden">
-                              <span className="block text-xl font-bold font-display leading-none text-primary group-hover:hidden">{daysLeft}</span>
-                              <span className="text-[10px] uppercase font-bold text-muted-foreground group-hover:hidden">Dias</span>
-                              <div className="hidden group-hover:flex flex-col items-center justify-center h-full text-[10px] text-primary font-bold uppercase">
-                                Editar
+                            <div className="bg-background rounded-lg p-2 text-center min-w-[60px] border border-border">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-lg leading-none text-primary">{getDaysRemaining(exam.targetDate)}</span>
+                                <span className="text-[10px] uppercase text-primary/70 mt-1">Dias</span>
                               </div>
                               <input 
                                 type="date" 
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
+                                className="bg-transparent border-none text-primary/70 text-xs cursor-pointer outline-none mt-2"
+                                value={exam.targetDate ? exam.targetDate.toISOString().split('T')[0] : ''}
                                 onChange={(e) => {
                                   if(e.target.value) {
                                      updateExamDateMutation.mutate({ id: exam.id, newDate: e.target.value });

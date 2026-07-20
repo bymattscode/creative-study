@@ -512,22 +512,19 @@ function DashboardRoute() {
                       <span className="text-xs text-muted-foreground uppercase">Contagem Regressiva</span>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-lg">{daysRemaining} dias</span>
-                        <div className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] bg-muted px-1.5 py-0.5 rounded cursor-pointer">
-                          Editar
-                        </div>
+                        <input 
+                          type="date" 
+                          className="bg-transparent border-none text-muted-foreground text-xs cursor-pointer outline-none"
+                          value={goal.targetDate ? goal.targetDate.toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            if(e.target.value) {
+                               updateGoalDateMutation.mutate({ id: goal.id, newDate: e.target.value });
+                            }
+                          }} 
+                        />
                       </div>
                     </div>
                     <Clock className="text-muted-foreground" size={24} />
-                    <input 
-                      type="date" 
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
-                      onChange={(e) => {
-                        if(e.target.value) {
-                           updateGoalDateMutation.mutate({ id: goal.id, newDate: e.target.value });
-                        }
-                      }} 
-                    />
                   </div>
                 )}
               </CardContent>
@@ -561,22 +558,19 @@ function DashboardRoute() {
                     <span className="text-xs text-muted-foreground uppercase">Faltam apenas</span>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-lg text-primary">{nextExamDaysRemaining} dias</span>
-                      <div className="text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer">
-                        Editar
-                      </div>
+                      <input 
+                        type="date" 
+                        className="bg-transparent border-none text-primary/70 text-xs cursor-pointer outline-none"
+                        value={nextExam.targetDate ? nextExam.targetDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          if(e.target.value) {
+                             updateExamDateMutation.mutate({ id: nextExam.id, newDate: e.target.value });
+                          }
+                        }} 
+                      />
                     </div>
                   </div>
                   <Target className="text-primary" size={24} />
-                  <input 
-                    type="date" 
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    onClick={(e) => { try { e.currentTarget.showPicker() } catch(err) {} }}
-                    onChange={(e) => {
-                      if(e.target.value) {
-                         updateExamDateMutation.mutate({ id: nextExam.id, newDate: e.target.value });
-                      }
-                    }} 
-                  />
                 </div>
               )}
             </CardContent>
