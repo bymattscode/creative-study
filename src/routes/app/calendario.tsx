@@ -235,7 +235,6 @@ function CalendarioRoute() {
         
         <MonthlyAgenda exams={upcomingExams} subjects={subjects} />
       </div>
-      </div>
     </div>
   );
 }

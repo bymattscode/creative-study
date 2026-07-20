@@ -39,7 +39,7 @@ export function MonthlyAgenda({ exams, subjects }: MonthlyAgendaProps) {
       const isCurrentMonth = isSameMonth(day, monthStart);
       const isToday = isSameDay(day, new Date());
       
-      const dayExams = exams.filter(e => isSameDay(new Date(e.targetDate), cloneDay));
+      const dayExams = exams.filter(e => e.targetDate && isSameDay(new Date(e.targetDate), cloneDay));
 
       days.push(
         <div
