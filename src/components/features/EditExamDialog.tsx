@@ -67,7 +67,7 @@ export function EditExamDialog({ exam, triggerClassName = "text-muted-foreground
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className={triggerClassName}>
+        <button className={triggerClassName} onClick={(e) => e.stopPropagation()}>
           <Pencil size={iconSize} />
         </button>
       </DialogTrigger>
