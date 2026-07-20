@@ -298,10 +298,24 @@ function ConfiguracoesRoute() {
         
         // Clear reviews
         await supabase.from("review_items").delete().eq("user_id", user?.id);
+
+        // Clear subjects
+        await supabase.from("subjects").delete().eq("user_id", user?.id);
+
+        // Clear goals (exams)
+        await supabase.from("goals").delete().eq("user_id", user?.id);
+
+        // Clear onboarding preferences
+        await supabase.from("onboarding_preferences").delete().eq("user_id", user?.id);
         
-        toast.success("Seu progresso e histórico foram zerados com sucesso!", { id: "reset" });
+        toast.success("Sua conta foi zerada com sucesso!", { id: "reset" });
+        
+        // Clear local storage to remove onboarding flag
+        localStorage.clear();
         queryClient.clear();
-        navigate({ to: "/app" });
+        
+        // Redirect to onboarding
+        window.location.href = "/onboarding";
       } catch (err: any) {
         toast.error("Erro ao resetar dados: " + err.message, { id: "reset" });
       }
