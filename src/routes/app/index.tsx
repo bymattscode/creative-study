@@ -550,7 +550,7 @@ function DashboardRoute() {
           )}
 
           {/* Card: Próxima Prova */}
-            <Card className="bg-[#2a0863] border-border shadow-sm ring-1 ring-primary/20 group">
+          <Card className="bg-[#21193a] border-border shadow-sm group">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary">
                 <span>Próxima Prova</span>
