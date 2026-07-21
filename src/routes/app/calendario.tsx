@@ -136,7 +136,8 @@ function CalendarioRoute() {
       {/* PRÓXIMAS PROVAS */}
       <div className="space-y-4">
         <h2 className="text-xl font-display font-bold flex items-center gap-2">
-          <Target className="text-primary" size={20} /> Próximas Provas & Eventos
+          <Target className="text-primary" size={20} /> 
+          {userProfile?.student_type === "Universidade" ? "Final do Semestre" : "Próximas Provas & Eventos"}
         </h2>
         
         {upcomingExams.length === 0 ? (
