@@ -66,6 +66,20 @@ function CalendarioRoute() {
   });
 
 
+  const { data: userProfile } = useQuery({
+    queryKey: ["userProfile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const updateExamDateMutation = useMutation({
     mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
       const { error } = await supabase.from("goals").update({ target_date: newDate }).eq("id", id);
@@ -145,7 +159,9 @@ function CalendarioRoute() {
                   <div className="h-1 w-full bg-gradient-to-r from-primary to-purple-600" />
                   <CardHeader className="pb-2 pt-4">
                     <CardTitle className="text-xl font-bold truncate flex items-center justify-between" title={mainGoal.title}>
-                      <span>{mainGoal.title} <span className="ml-2 text-xs font-normal text-muted-foreground uppercase tracking-widest px-2 py-1 bg-primary/10 rounded-full text-primary">Meta Principal</span></span>
+                      <span>{mainGoal.title} <span className="ml-2 text-xs font-normal text-muted-foreground uppercase tracking-widest px-2 py-1 bg-primary/10 rounded-full text-primary">
+                        {userProfile?.student_type === "Universidade" ? "Final do Semestre" : "Meta Principal"}
+                      </span></span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
