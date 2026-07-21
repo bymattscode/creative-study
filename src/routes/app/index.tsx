@@ -386,9 +386,9 @@ function DashboardRoute() {
       )}
 
       {/* Saudação e Objetivo */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <p className="text-muted-foreground font-medium flex items-center gap-2 uppercase tracking-widest text-xs mb-1">
+      <div className="flex flex-col md:flex-row justify-between items-center md:items-center gap-4 text-center md:text-left">
+        <div className="flex flex-col items-center md:items-start">
+          <p className="text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-2 uppercase tracking-widest text-xs mb-1">
             <Sparkles size={14} className="text-primary" /> Seu Centro de Comando
           </p>
           <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground">
@@ -431,9 +431,9 @@ function DashboardRoute() {
       {/* 2. Insight IA (A Próxima Melhor Ação) */}
       <Card className="bg-[#17122b] border-primary/30 shadow-[0_0_30px_rgba(168,255,0,0.05)] overflow-hidden relative group">
         <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/10 to-transparent pointer-events-none"></div>
-        <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 relative z-10 w-full md:w-2/3">
-            <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs mb-2">
+        <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          <div className="space-y-2 relative z-10 w-full md:w-2/3 flex flex-col items-center md:items-start">
+            <div className="flex items-center justify-center md:justify-start gap-2 text-primary font-bold uppercase tracking-widest text-xs mb-2">
               <BrainCircuit size={16} /> Insight da Inteligência Artificial
             </div>
             <h2 className="text-xl md:text-2xl font-bold leading-tight">
