@@ -33,14 +33,24 @@ serve(async (req) => {
       throw new Error("Mercado Pago Access Token is not set");
     }
 
+    let price = 97.00;
+    let title = "Creative Study Pro - Plano Anual";
+    let description = "Acesso anual a todos os recursos da plataforma";
+
+    if (plan === "mensal") {
+      price = 29.90;
+      title = "Creative Study Pro - Plano Mensal";
+      description = "Acesso mensal a todos os recursos da plataforma";
+    }
+
     const preference = {
       items: [
         {
-          title: "Creative Study Pro - Acesso Vitalício",
-          description: "Desbloqueio de todos os recursos da plataforma",
+          title: title,
+          description: description,
           quantity: 1,
           currency_id: "BRL",
-          unit_price: 97.00, // Ajuste o valor conforme necessário
+          unit_price: price,
         },
       ],
       payer: {

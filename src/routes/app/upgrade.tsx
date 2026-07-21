@@ -17,7 +17,7 @@ function UpgradeRoute() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (planType: "mensal" | "anual") => {
     // Verificamos se o usuário está logado no Supabase para poder gerar o pagamento
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -29,7 +29,7 @@ function UpgradeRoute() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: "pro" },
+        body: { plan: planType },
       });
 
       if (error) throw error;
@@ -65,7 +65,7 @@ function UpgradeRoute() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {/* Plano Free */}
         <div className="rounded-2xl border border-border bg-surface-elevated p-8 flex flex-col">
           <h2 className="text-2xl font-bold mb-2">Básico</h2>
@@ -93,7 +93,41 @@ function UpgradeRoute() {
           </Button>
         </div>
 
-        {/* Plano Pro */}
+        {/* Plano Pro Mensal */}
+        <div className="rounded-2xl border border-primary/20 bg-surface-elevated p-8 flex flex-col relative transition-all hover:border-primary/50">
+          <h2 className="text-2xl font-bold mb-2 text-primary">Pro Mensal</h2>
+          <p className="text-muted-foreground mb-6">Flexibilidade para o seu estudo.</p>
+          <div className="flex items-baseline gap-2 mb-8">
+            <span className="text-4xl font-display font-bold">R$ 29,90</span>
+            <span className="text-muted-foreground">/mês</span>
+          </div>
+
+          <ul className="space-y-4 mb-8 flex-1">
+            <li className="flex items-center gap-3">
+              <Zap size={20} className="text-primary" /> Copiloto de IA (Insights Diários)
+            </li>
+            <li className="flex items-center gap-3">
+              <BrainCircuit size={20} className="text-primary" /> Analytics Profundo (Gráficos)
+            </li>
+            <li className="flex items-center gap-3">
+              <Target size={20} className="text-primary" /> Planejamento Adaptativo
+            </li>
+            <li className="flex items-center gap-3">
+              <CheckCircle2 size={20} className="text-primary" /> Objetivos Ilimitados
+            </li>
+          </ul>
+
+          <Button
+            onClick={() => handleUpgrade("mensal")}
+            disabled={isLoading}
+            variant="outline"
+            className="w-full font-bold text-lg h-12 border-primary/50 text-foreground hover:bg-primary/10 transition-all"
+          >
+            {isLoading ? "Gerando..." : "Assinar Mensal"}
+          </Button>
+        </div>
+
+        {/* Plano Pro Anual */}
         <div className="rounded-2xl border border-primary/50 bg-gradient-to-b from-primary/10 to-transparent p-8 flex flex-col relative shadow-glow">
           <div className="absolute top-0 right-8 transform -translate-y-1/2">
             <span className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full">
@@ -101,11 +135,11 @@ function UpgradeRoute() {
             </span>
           </div>
 
-          <h2 className="text-2xl font-bold mb-2 text-primary">Creative Study Pro</h2>
+          <h2 className="text-2xl font-bold mb-2 text-primary">Pro Anual</h2>
           <p className="text-muted-foreground mb-6">O arsenal completo para a sua aprovação.</p>
           <div className="flex items-baseline gap-2 mb-8">
             <span className="text-4xl font-display font-bold">R$ 97</span>
-            <span className="text-muted-foreground">/único</span>
+            <span className="text-muted-foreground">/ano</span>
           </div>
 
           <ul className="space-y-4 mb-8 flex-1">
@@ -127,11 +161,11 @@ function UpgradeRoute() {
           </ul>
 
           <Button
-            onClick={handleUpgrade}
+            onClick={() => handleUpgrade("anual")}
             disabled={isLoading}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-lg h-12 shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] transition-all"
           >
-            {isLoading ? "Gerando pagamento..." : "Assinar com Mercado Pago"}
+            {isLoading ? "Gerando..." : "Assinar Anual"}
           </Button>
         </div>
       </div>
