@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -64,12 +64,32 @@ export function EditExamDialog({ exam, triggerClassName = "text-muted-foreground
     }
   });
 
+  const deleteExamMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("goals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      queryClient.invalidateQueries({ queryKey: ["upcomingExams"] });
+      queryClient.invalidateQueries({ queryKey: ["nextExam"] });
+      toast.success("Prova excluída com sucesso!");
+      setOpen(false);
+    }
+  });
+
   const handleSave = () => {
     updateExamMutation.mutate({
       id: exam.id,
       title: JSON.stringify({ name, subjectId }),
       targetDate
     });
+  };
+
+  const handleDelete = () => {
+    if (window.confirm("Tem certeza que deseja excluir esta prova? Esta ação não pode ser desfeita.")) {
+      deleteExamMutation.mutate(exam.id);
+    }
   };
 
   return (
@@ -102,9 +122,24 @@ export function EditExamDialog({ exam, triggerClassName = "text-muted-foreground
                </SelectContent>
             </Select>
           </div>
-          <Button className="w-full text-zinc-900" onClick={handleSave} disabled={updateExamMutation.isPending}>
-            {updateExamMutation.isPending ? "Salvando..." : "Salvar Alterações"}
-          </Button>
+          <div className="flex gap-2 pt-2">
+            <Button 
+              variant="destructive" 
+              className="px-3" 
+              onClick={handleDelete} 
+              disabled={deleteExamMutation.isPending || updateExamMutation.isPending}
+              title="Excluir Prova"
+            >
+              {deleteExamMutation.isPending ? "..." : <Trash2 size={18} />}
+            </Button>
+            <Button 
+              className="flex-1 text-zinc-900" 
+              onClick={handleSave} 
+              disabled={updateExamMutation.isPending || deleteExamMutation.isPending}
+            >
+              {updateExamMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
