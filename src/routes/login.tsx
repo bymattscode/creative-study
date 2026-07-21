@@ -27,7 +27,7 @@ function LoginRoute() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/onboarding`
+          redirectTo: `${window.location.origin}/app`
         }
       });
       if (error) throw error;
@@ -38,8 +38,7 @@ function LoginRoute() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      const hasOnboarding = localStorage.getItem("@sinapse:onboardingCompleted");
-      navigate({ to: hasOnboarding ? "/app" : "/onboarding", replace: true });
+      navigate({ to: "/app", replace: true });
     }
   }, [user, isLoading, navigate]);
 

@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -11,6 +12,8 @@ export const Route = createFileRoute("/app")({
 function AppLayout() {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
+
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
   useEffect(() => {
     if (isLoading) return; // Aguarda carregar a sessão
@@ -22,13 +25,40 @@ function AppLayout() {
     }
 
     // Força o onboarding caso não tenha sido completado ainda
-    const hasOnboarding = localStorage.getItem("@sinapse:onboardingCompleted");
-    if (!hasOnboarding) {
-      navigate({ to: "/onboarding", replace: true });
-    }
+    const checkOnboarding = async () => {
+      const hasOnboardingLocally = localStorage.getItem("@sinapse:onboardingCompleted");
+      
+      if (hasOnboardingLocally) {
+        setIsCheckingOnboarding(false);
+        return;
+      }
+      
+      // Se não tem no localStorage, vamos checar no banco de dados (pode ser login em novo dispositivo)
+      try {
+        const { data } = await supabase
+          .from("onboarding_preferences")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle(); 
+          
+        if (data) {
+           // Tem onboarding no banco! Vamos salvar no localStorage
+           localStorage.setItem("@sinapse:onboardingCompleted", "true");
+           setIsCheckingOnboarding(false);
+        } else {
+           // Não tem mesmo, vai pro onboarding
+           navigate({ to: "/onboarding", replace: true });
+        }
+      } catch (err) {
+        console.error("Erro ao checar onboarding:", err);
+        navigate({ to: "/onboarding", replace: true });
+      }
+    };
+    
+    checkOnboarding();
   }, [navigate, user, isLoading]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || isCheckingOnboarding) {
     return <div className="min-h-screen flex items-center justify-center bg-background">Carregando...</div>;
   }
 
