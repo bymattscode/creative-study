@@ -398,7 +398,7 @@ function DashboardRoute() {
         </div>
 
         {/* Constância Rápida Header */}
-        <div className="flex items-center gap-3 bg-surface-elevated px-5 py-2.5 rounded-2xl border border-border shadow-sm">
+        <div className="flex w-full md:w-auto justify-center items-center gap-3 bg-surface-elevated px-5 py-2.5 rounded-2xl border border-border shadow-sm">
           <div className="flex -space-x-1">
             {/* Constância Visual Real */}
             {last5Days.map((date, i) => {
