@@ -47,7 +47,7 @@ function LoginRoute() {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -55,13 +55,18 @@ function LoginRoute() {
       if (error) {
         toast.error(error.message);
         setLoading(false);
-      } else {
+      } else if (data?.user) {
         trackEvent("login_completed");
         toast.success("Login realizado com sucesso!");
-        // O useEffect acima irá redirecionar automaticamente
+        setLoading(false);
+        navigate({ to: "/app", replace: true });
+      } else {
+        // Caso estranho onde não há erro mas também não há usuário
+        toast.error("Erro ao realizar login. Verifique sua conta.");
+        setLoading(false);
       }
     } catch (err: any) {
-      toast.error(err.message || "Erro de conexão. Verifique sua internet ou as chaves do Supabase.");
+      toast.error(err?.message || "Erro de conexão. Verifique sua internet ou as chaves do Supabase.");
       setLoading(false);
     }
   };
