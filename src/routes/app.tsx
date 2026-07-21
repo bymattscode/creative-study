@@ -68,7 +68,7 @@ function AppLayout() {
         <AppSidebar />
         <main className="flex flex-1 flex-col overflow-hidden">
           {/* Header Mobile / Topbar */}
-          <header className="flex h-16 items-center gap-4 border-b border-border/50 bg-surface-elevated/80 px-6 backdrop-blur-md lg:hidden z-10 shadow-sm">
+          <header className="flex h-16 items-center gap-4 border-b border-border/50 bg-surface-elevated/80 px-6 backdrop-blur-md md:hidden z-10 shadow-sm">
             <SidebarTrigger className="-ml-2" />
             <span className="font-display text-xl font-bold text-foreground">Sinapse</span>
           </header>
