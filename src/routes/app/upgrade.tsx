@@ -4,6 +4,8 @@ import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles, Zap, BrainCircuit, Target } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/app/upgrade")({
   component: UpgradeRoute,
@@ -13,14 +15,35 @@ function UpgradeRoute() {
   const navigate = useNavigate();
   const [profile, setProfile] = useSyncStorage<UserProfile | null>("@sinapse:userProfile", null);
 
-  const handleUpgrade = () => {
-    if (profile) {
-      setProfile({ ...profile, subscriptionTier: "pro" });
-      toast.success("Bem-vindo ao Creative Study Pro! Todos os recursos foram desbloqueados.", {
-        duration: 4000,
-        className: "bg-green-500 border-none text-white",
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    // Verificamos se o usuário está logado no Supabase para poder gerar o pagamento
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error("Você precisa estar logado (online) para assinar.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan: "pro" },
       });
-      navigate({ to: "/app" });
+
+      if (error) throw error;
+
+      if (data?.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        toast.error("Link de pagamento não retornado.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao conectar com o provedor de pagamento.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,8 +104,8 @@ function UpgradeRoute() {
           <h2 className="text-2xl font-bold mb-2 text-primary">Creative Study Pro</h2>
           <p className="text-muted-foreground mb-6">O arsenal completo para a sua aprovação.</p>
           <div className="flex items-baseline gap-2 mb-8">
-            <span className="text-4xl font-display font-bold">R$ 29</span>
-            <span className="text-muted-foreground">/mês</span>
+            <span className="text-4xl font-display font-bold">R$ 97</span>
+            <span className="text-muted-foreground">/único</span>
           </div>
 
           <ul className="space-y-4 mb-8 flex-1">
@@ -105,9 +128,10 @@ function UpgradeRoute() {
 
           <Button
             onClick={handleUpgrade}
+            disabled={isLoading}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-lg h-12 shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] transition-all"
           >
-            Assinar Agora
+            {isLoading ? "Gerando pagamento..." : "Assinar com Mercado Pago"}
           </Button>
         </div>
       </div>
