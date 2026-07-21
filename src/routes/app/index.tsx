@@ -514,7 +514,7 @@ function DashboardRoute() {
           {profile?.studentType === "universidade" && (
             <Card className="bg-[#21193a] border-border shadow-sm group">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-primary uppercase tracking-widest flex items-center justify-between">
                   <span>Final do Semestre</span>
                   <div className="flex items-center gap-2">
                     {goal && (
@@ -597,7 +597,7 @@ function DashboardRoute() {
           {/* Card: Horas Líquidas */}
           <Card className="bg-surface-elevated border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+              <CardTitle className="text-sm font-medium text-primary uppercase tracking-widest">
                 Horas Líquidas Totais
               </CardTitle>
             </CardHeader>
