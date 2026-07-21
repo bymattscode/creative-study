@@ -16,7 +16,7 @@ function UpgradeRoute() {
   const handleUpgrade = () => {
     if (profile) {
       setProfile({ ...profile, subscriptionTier: "pro" });
-      toast.success("Bem-vindo ao Sinapse Pro! Todos os recursos foram desbloqueados.", {
+      toast.success("Bem-vindo ao Creative Study Pro! Todos os recursos foram desbloqueados.", {
         duration: 4000,
         className: "bg-green-500 border-none text-white",
       });
@@ -78,7 +78,7 @@ function UpgradeRoute() {
             </span>
           </div>
 
-          <h2 className="text-2xl font-bold mb-2 text-primary">Sinapse Pro</h2>
+          <h2 className="text-2xl font-bold mb-2 text-primary">Creative Study Pro</h2>
           <p className="text-muted-foreground mb-6">O arsenal completo para a sua aprovação.</p>
           <div className="flex items-baseline gap-2 mb-8">
             <span className="text-4xl font-display font-bold">R$ 29</span>

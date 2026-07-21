@@ -437,7 +437,7 @@ function OnboardingWizard() {
                 </div>
               </div>
               <div className="text-center space-y-2">
-                <h1 className="text-2xl font-display font-bold">Sincronizando Sinapses...</h1>
+                <h1 className="text-2xl font-display font-bold">Preparando seu ambiente...</h1>
                 <p className="text-muted-foreground">
                   A Inteligência Artificial está montando seu planejamento inicial.
                 </p>

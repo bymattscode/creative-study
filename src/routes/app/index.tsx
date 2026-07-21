@@ -329,7 +329,7 @@ function DashboardRoute() {
       <div className="flex h-[50vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-muted-foreground animate-pulse">
           <BrainCircuit size={40} className="text-primary/50" />
-          <p className="text-sm font-medium">Sincronizando Sinapses...</p>
+          <p className="text-sm font-medium">Sincronizando dados...</p>
         </div>
       </div>
     );
@@ -443,7 +443,7 @@ function DashboardRoute() {
             </h2>
             <p className="text-muted-foreground">
               {history.length === 0 
-                ? "A inteligência do Sinapse precisa de dados para te guiar. Que tal fazer sua primeira sessão de 25 minutos na sua matéria mais importante?"
+                ? "A inteligência do Creative Study precisa de dados para te guiar. Que tal fazer sua primeira sessão de 25 minutos na sua matéria mais importante?"
                 : insight || "Tudo sob controle. Siga seu planejamento."}
             </p>
           </div>

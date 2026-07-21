@@ -279,7 +279,7 @@ function DesempenhoRoute() {
           <UpgradePaywall
             isPro={profile?.subscription_tier === "pro"}
             title="Gráficos Detalhados"
-            description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Sinapse Pro."
+            description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Creative Study Pro."
           >
             <Card className="bg-surface-elevated border-border shadow-sm">
               <CardHeader>
@@ -400,7 +400,7 @@ function DesempenhoRoute() {
         <UpgradePaywall
           isPro={profile?.subscription_tier === "pro"}
           title="Perfil do Estudante"
-          description="Descubra se você é um estudante passivo ou ativo assinando o Sinapse Pro."
+          description="Descubra se você é um estudante passivo ou ativo assinando o Creative Study Pro."
         >
           <Card className="bg-surface-elevated border-border shadow-sm h-full">
             <CardHeader>

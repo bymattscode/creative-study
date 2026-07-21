@@ -31,7 +31,7 @@ function Index() {
           <div className="flex items-center gap-2">
             <BrainCircuit className="text-primary" size={24} />
             <span className="font-display font-bold text-xl tracking-tight text-white">
-              Sinapse
+              Creative Study
             </span>
           </div>
           <nav className="flex items-center gap-4">
@@ -86,7 +86,7 @@ function Index() {
             <div className="absolute inset-0 bg-primary/5 blur-[100px] -z-10 rounded-full"></div>
             <img
               src={dashboardMockup.url}
-              alt="Dashboard Sinapse"
+              alt="Dashboard Creative Study"
               className="rounded-2xl border border-[#3a2a67] shadow-2xl relative z-0 w-full object-cover"
             />
           </div>
@@ -157,7 +157,7 @@ function Index() {
                 {
                   num: "01",
                   title: "Defina sua meta",
-                  desc: "Diga ao Sinapse qual o seu concurso ou vestibular e sua disponibilidade semanal.",
+                  desc: "Diga ao Creative Study qual o seu concurso ou vestibular e sua disponibilidade semanal.",
                 },
                 {
                   num: "02",
@@ -259,7 +259,7 @@ function Index() {
                 <div className="absolute top-0 right-8 -translate-y-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
                   Recomendado
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Sinapse Pro</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">Creative Study Pro</h3>
                 <p className="text-muted-foreground mb-6">
                   A ferramenta definitiva para altíssima performance.
                 </p>
@@ -305,7 +305,7 @@ function Index() {
               className="border border-border bg-surface px-6 rounded-lg"
             >
               <AccordionTrigger className="hover:no-underline text-left text-lg font-medium text-white">
-                O Sinapse serve para qualquer concurso?
+                O Creative Study serve para qualquer concurso?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground text-base">
                 Sim. A plataforma é agnóstica de conteúdo. Você cadastra as matérias do seu edital
@@ -321,7 +321,7 @@ function Index() {
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground text-base">
                 Você pode usar o plano Básico gratuitamente para sempre, que inclui timer e
-                dashboard simples. Os recursos adaptativos e a IA fazem parte do Sinapse Pro.
+                dashboard simples. Os recursos adaptativos e a IA fazem parte do Creative Study Pro.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem
@@ -363,9 +363,9 @@ function Index() {
       <footer className="border-t border-border bg-background py-12 text-center text-muted-foreground">
         <div className="flex items-center justify-center gap-2 mb-4">
           <BrainCircuit className="text-primary/50" size={20} />
-          <span className="font-display font-bold text-lg text-white/50">Sinapse</span>
+          <span className="font-display font-bold text-lg text-white/50">Creative Study</span>
         </div>
-        <p className="text-sm">© 2026 Sinapse. Todos os direitos reservados.</p>
+        <p className="text-sm">© 2026 Creative Study. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

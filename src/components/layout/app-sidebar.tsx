@@ -52,7 +52,7 @@ export function AppSidebar() {
             <BrainCircuit size={18} />
           </div>
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            Sinapse
+            Creative Study
           </span>
           {profile?.subscriptionTier === "pro" && (
             <Badge

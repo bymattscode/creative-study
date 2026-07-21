@@ -611,7 +611,7 @@ function ConfiguracoesRoute() {
                   <div>
                     <h3 className="font-medium text-sm">Modo Escuro (Padrão)</h3>
                     <p className="text-xs text-muted-foreground">
-                      O Sinapse foi otimizado para o modo noturno.
+                      O Creative Study foi otimizado para o modo noturno.
                     </p>
                   </div>
                 </div>
