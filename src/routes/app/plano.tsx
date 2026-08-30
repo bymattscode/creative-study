@@ -576,6 +576,31 @@ function PlanoSemanalRoute() {
                       {day.items.filter((i) => i.status === "concluido").length}/{day.items.length}{" "}
                       Concluídos
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const date = new Date(day.date);
+                        date.setHours(8, 0, 0, 0);
+                        
+                        setAddingTaskDay({
+                          dayIdx: idx,
+                          task: {
+                            subjectId: subjects.length > 0 ? subjects[0].id : "",
+                            subjectName: subjects.length > 0 ? subjects[0].name : "",
+                            topicName: "Novo Bloco",
+                            durationMinutes: 60,
+                            type: "teoria",
+                            status: "pendente",
+                            scheduledFor: date.toISOString(),
+                          }
+                        });
+                      }}
+                    >
+                      <Plus size={16} />
+                    </Button>
                   </div>
                 </div>
               </AccordionTrigger>
@@ -706,32 +731,6 @@ function PlanoSemanalRoute() {
                     </div>
                   ))
                 )}
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    className="w-full border-dashed text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      const date = new Date(day.date);
-                      date.setHours(8, 0, 0, 0); // default to 8am
-                      
-                      setAddingTaskDay({
-                        dayIdx: idx,
-                        task: {
-                          subjectId: subjects.length > 0 ? subjects[0].id : "",
-                          subjectName: subjects.length > 0 ? subjects[0].name : "",
-                          topicName: "Novo Bloco",
-                          durationMinutes: 60,
-                          type: "teoria",
-                          status: "pendente",
-                          scheduledFor: date.toISOString(),
-                        }
-                      });
-                    }}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Matéria
-                  </Button>
-                </div>
               </AccordionContent>
             </AccordionItem>
           ))}
