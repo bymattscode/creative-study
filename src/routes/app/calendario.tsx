@@ -163,7 +163,7 @@ function CalendarioRoute() {
             {mainGoal && (
               <div className="grid grid-cols-1">
                 <Card className="bg-[#21193a] border-primary/50 shadow-sm overflow-hidden ring-1 ring-primary/50 group">
-                  <div className="h-1 w-full bg-gradient-to-r from-primary to-purple-600" />
+                  <div className="h-1 w-full bg-primary" />
                   <CardHeader className="pb-2 pt-4">
                     <CardTitle className="text-xl font-bold truncate flex items-center justify-between" title={mainGoal.title}>
                       <span>{mainGoal.title} <span className="ml-2 text-xs font-normal text-muted-foreground uppercase tracking-widest px-2 py-1 bg-primary/10 rounded-full text-primary">
