@@ -24,6 +24,9 @@ import {
   BarChart3,
   CalendarDays,
   Repeat,
+  TrendingDown,
+  Minus,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/desempenho")({
@@ -176,6 +179,88 @@ function DesempenhoRoute() {
   const typeData = getTypeDistribution();
   const topType = typeData.length > 0 ? typeData[0].label : "-";
 
+  // 5. Novo Card: Seu Foco Principal
+  const getMainFocusData = () => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const startOfThisWeek = new Date(today);
+    startOfThisWeek.setDate(today.getDate() - 6);
+    startOfThisWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+    const endOfLastWeek = new Date(startOfThisWeek);
+    endOfLastWeek.setMilliseconds(endOfLastWeek.getMilliseconds() - 1);
+
+    const thisWeekSessions = history.filter(s => {
+      const d = new Date(s.created_at);
+      return d >= startOfThisWeek && d <= today;
+    });
+
+    const lastWeekSessions = history.filter(s => {
+      const d = new Date(s.created_at);
+      return d >= startOfLastWeek && d <= endOfLastWeek;
+    });
+
+    const thisWeekSubjectDist: Record<string, number> = {};
+    thisWeekSessions.forEach(s => {
+      thisWeekSubjectDist[s.subject_id] = (thisWeekSubjectDist[s.subject_id] || 0) + s.duration_minutes;
+    });
+
+    const mainSubjectId = Object.keys(thisWeekSubjectDist).sort((a, b) => thisWeekSubjectDist[b] - thisWeekSubjectDist[a])[0];
+
+    if (!mainSubjectId) return null;
+
+    const mainSubject = subjects.find(sub => sub.id === mainSubjectId);
+    if (!mainSubject) return null;
+
+    const thisWeekMinutes = thisWeekSubjectDist[mainSubjectId];
+    const totalThisWeekMinutes = thisWeekSessions.reduce((acc, s) => acc + s.duration_minutes, 0);
+    const percentOfTotal = Math.round((thisWeekMinutes / totalThisWeekMinutes) * 100);
+
+    const lastWeekMinutes = lastWeekSessions.filter(s => s.subject_id === mainSubjectId).reduce((acc, s) => acc + s.duration_minutes, 0);
+    
+    let variation = 0;
+    if (lastWeekMinutes > 0) {
+      variation = Math.round(((thisWeekMinutes - lastWeekMinutes) / lastWeekMinutes) * 100);
+    } else if (thisWeekMinutes > 0) {
+      variation = 100;
+    }
+
+    const breakdown: Record<string, number> = { teoria: 0, questoes: 0, revisao: 0 };
+    thisWeekSessions.filter(s => s.subject_id === mainSubjectId).forEach(s => {
+      const type = decodeNotes(s.notes).type || "teoria";
+      breakdown[type] = (breakdown[type] || 0) + s.duration_minutes;
+    });
+
+    const mainBreakdownType = Object.keys(breakdown).sort((a, b) => breakdown[b] - breakdown[a])[0];
+    
+    let insight = "";
+    if (mainBreakdownType === "questoes") {
+      insight = "Perfil ativo com excelente foco na resolução de exercícios.";
+    } else if (mainBreakdownType === "revisao") {
+      insight = "Ótimo trabalho consolidando o conhecimento já adquirido.";
+    } else {
+      if ((breakdown.questoes || 0) > 0) {
+        insight = "Embasamento teórico forte. Considere aumentar a carga de questões na próxima semana.";
+      } else {
+        insight = "Foco puramente teórico. É hora de validar seus conhecimentos com mais prática.";
+      }
+    }
+
+    return {
+      subjectName: mainSubject.name,
+      color: mainSubject.color || "#a8ff00",
+      minutes: thisWeekMinutes,
+      percentOfTotal,
+      variation,
+      lastWeekMinutes,
+      breakdown,
+      insight
+    };
+  };
+  const mainFocus = getMainFocusData();
+
   // Loading state
   if (loadingHistory || loadingReviews) {
     return (
@@ -274,8 +359,80 @@ function DesempenhoRoute() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Seu Foco Principal */}
+        <div className="col-span-1">
+          <Card className="bg-gradient-to-br from-surface-elevated to-[#17122b] border-border shadow-md h-full relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: mainFocus?.color || "#a8ff00" }} />
+            <CardHeader className="pb-2 relative z-10">
+              <CardTitle className="flex items-center gap-2 font-display text-sm tracking-wide uppercase text-muted-foreground">
+                <Sparkles size={16} className="text-primary" /> Seu Foco Principal
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 flex flex-col justify-between h-[calc(100%-60px)]">
+              {mainFocus ? (
+                <>
+                  <div>
+                    <h2 className="text-3xl font-bold font-display text-foreground leading-tight" style={{ color: mainFocus.color }}>
+                      {mainFocus.subjectName}
+                    </h2>
+                    
+                    <div className="flex items-end gap-3 mt-4">
+                      <span className="text-4xl font-light tracking-tighter">
+                        {Math.floor(mainFocus.minutes / 60)}h {mainFocus.minutes % 60 > 0 ? `${mainFocus.minutes % 60}m` : ''}
+                      </span>
+                      <div className="mb-1 flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border">
+                          {mainFocus.percentOfTotal}% da semana
+                        </span>
+                        
+                        {mainFocus.variation > 0 ? (
+                          <span className="text-emerald-400 flex items-center gap-0.5">
+                            <TrendingUp size={14} /> +{mainFocus.variation}%
+                          </span>
+                        ) : mainFocus.variation < 0 ? (
+                          <span className="text-red-400 flex items-center gap-0.5">
+                            <TrendingDown size={14} /> {mainFocus.variation}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground flex items-center gap-0.5">
+                            <Minus size={14} /> Estável
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-4">
+                    <div>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
+                        <span>Teoria: {Math.round((mainFocus.breakdown.teoria || 0) / mainFocus.minutes * 100)}%</span>
+                        <span>Questões: {Math.round((mainFocus.breakdown.questoes || 0) / mainFocus.minutes * 100)}%</span>
+                        <span>Revisão: {Math.round((mainFocus.breakdown.revisao || 0) / mainFocus.minutes * 100)}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full overflow-hidden flex bg-background">
+                        <div style={{ width: `${(mainFocus.breakdown.teoria || 0) / mainFocus.minutes * 100}%`, backgroundColor: ACTIVITY_COLORS.teoria }} />
+                        <div style={{ width: `${(mainFocus.breakdown.questoes || 0) / mainFocus.minutes * 100}%`, backgroundColor: ACTIVITY_COLORS.questoes }} />
+                        <div style={{ width: `${(mainFocus.breakdown.revisao || 0) / mainFocus.minutes * 100}%`, backgroundColor: ACTIVITY_COLORS.revisao }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-foreground/90 italic">
+                      "{mainFocus.insight}"
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 opacity-60 py-8">
+                  <BrainCircuit size={40} className="text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">O copiloto precisa de mais sessões de estudo recentes para extrair um insight refinado.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Gráfico 7 Dias */}
-        <div className="col-span-1 lg:col-span-2">
+        <div className="col-span-1">
           <UpgradePaywall
           isPro={true} // TESTE: profile?.subscription_tier === "pro"
             title="Gráficos Detalhados"
