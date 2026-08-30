@@ -29,34 +29,42 @@ import { toast } from "sonner";
 import { EditGoalDialog } from "@/components/features/EditGoalDialog";
 import { EditExamDialog } from "@/components/features/EditExamDialog";
 const QUOTES = [
-  "A persistência realiza o impossível.",
-  "O estudo é a luz que ilumina o caminho do sucesso.",
-  "Estudar não é uma obrigação, é uma porta aberta para o próprio crescimento.",
-  "Um passo de cada vez. A aprovação é uma maratona, não um sprint.",
-  "A mente que se abre a uma nova ideia jamais voltará ao seu tamanho original.",
-  "Não deseje que seja mais fácil, deseje ser melhor.",
-  "Hoje você planta, amanhã você colhe.",
-  "O suor do estudo de hoje é a tranquilidade de amanhã.",
-  "Cada página lida é um passo mais perto do seu objetivo.",
-  "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
-  "A disciplina é a ponte entre metas e realizações.",
-  "Você não precisa ser grande para começar, mas precisa começar para ser grande.",
-  "O conhecimento é o único bem que não podem te roubar.",
-  "Não pare quando estiver cansado. Pare quando tiver terminado.",
-  "O sacrifício é temporário, mas a recompensa é para sempre.",
-  "Sua única limitação é aquela que você impõe a si mesmo.",
-  "A preparação de hoje determina o sucesso de amanhã.",
-  "Foco, força e fé. O caminho é longo, mas a vista vale a pena.",
-  "Transforme a motivação em hábito e o hábito em excelência.",
-  "Estude enquanto eles dormem, viva o que eles sonham."
+  { text: "A persistência realiza o impossível.", author: "Provérbio Chinês" },
+  { text: "Só sei que nada sei, e o fato de saber isso me coloca à frente de muitos.", author: "Sócrates" },
+  { text: "As raízes do estudo são amargas, mas seus frutos são doces.", author: "Aristóteles" },
+  { text: "O ignorante afirma, o sábio duvida, o sensato reflete.", author: "Aristóteles" },
+  { text: "A mente que se abre a uma nova ideia jamais voltará ao seu tamanho original.", author: "Albert Einstein" },
+  { text: "Educação não é o aprendizado de fatos, mas o treinamento da mente para pensar.", author: "Albert Einstein" },
+  { text: "A genialidade é 1% inspiração e 99% transpiração.", author: "Thomas Edison" },
+  { text: "Investir em conhecimento rende sempre os melhores juros.", author: "Benjamin Franklin" },
+  { text: "Se vi mais longe foi por estar de pé sobre ombros de gigantes.", author: "Isaac Newton" },
+  { text: "O conhecimento é o único bem que não podem te roubar.", author: "Sêneca" },
+  { text: "Sorte é o que acontece quando a preparação encontra a oportunidade.", author: "Sêneca" },
+  { text: "Nenhum vento sopra a favor de quem não sabe para onde ir.", author: "Sêneca" },
+  { text: "Não deseje que seja mais fácil, deseje ser melhor.", author: "Jim Rohn" },
+  { text: "A disciplina é a ponte entre metas e realizações.", author: "Jim Rohn" },
+  { text: "O sucesso é a soma de pequenos esforços repetidos dia após dia.", author: "Robert Collier" },
+  { text: "Você não precisa ser grande para começar, mas precisa começar para ser grande.", author: "Zig Ziglar" },
+  { text: "O principal objetivo da educação é criar pessoas capazes de fazer coisas novas.", author: "Jean Piaget" },
+  { text: "A educação é a arma mais poderosa que você pode usar para mudar o mundo.", author: "Nelson Mandela" },
+  { text: "Não pare quando estiver cansado. Pare quando tiver terminado.", author: "David Goggins" },
+  { text: "Sua única limitação é aquela que você impõe a si mesmo.", author: "Napoleon Hill" },
+  { text: "O que não provoca minha morte faz com que eu fique mais forte.", author: "Friedrich Nietzsche" },
+  { text: "Quem tem um 'porquê' enfrenta qualquer 'como'.", author: "Friedrich Nietzsche" },
+  { text: "Conhece-te a ti mesmo e conhecerás o universo e os deuses.", author: "Sócrates" },
+  { text: "A sabedoria é o objetivo máximo da vida humana.", author: "Platão" },
+  { text: "O homem é aquilo que ele faz de si mesmo.", author: "Jean-Paul Sartre" },
+  { text: "Para o trabalho que gostamos, levantamo-nos cedo e fazemo-lo com alegria.", author: "William Shakespeare" },
+  { text: "A vida sem ciência é uma espécie de morte.", author: "Sócrates" },
+  { text: "Onde não há esforço não há recompensa.", author: "Ditado Popular" },
+  { text: "Não limite seus desafios, desafie seus limites.", author: "Tony Robbins" },
+  { text: "Faça o que puder, com o que tem, onde estiver.", author: "Theodore Roosevelt" },
+  { text: "Acredite que você pode e você já está na metade do caminho.", author: "Theodore Roosevelt" }
 ];
 
 const getDailyQuote = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const diff = now.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-  return QUOTES[dayOfYear % QUOTES.length];
+  const dayOfMonth = new Date().getDate(); // 1 a 31
+  return QUOTES[dayOfMonth - 1] || QUOTES[0];
 };
 
 export const Route = createFileRoute("/app/")({
@@ -67,6 +75,7 @@ function DashboardRoute() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const dailyQuote = getDailyQuote();
 
   useEffect(() => {
     trackEvent("dashboard_viewed");
@@ -439,10 +448,15 @@ function DashboardRoute() {
             <span className="text-primary">{profile ? getFirstName(profile.name) : "Mestre"}!</span>
           </h1>
           <div className="mt-3 hidden md:flex items-center gap-2">
-            <div className="w-1 h-4 bg-primary/50 rounded-full" />
-            <p className="text-sm text-muted-foreground/80 italic font-medium">
-              "{getDailyQuote()}"
-            </p>
+            <div className="w-1 h-8 bg-primary/50 rounded-full" />
+            <div className="flex flex-col">
+              <p className="text-sm text-muted-foreground/80 italic font-medium">
+                "{dailyQuote.text}"
+              </p>
+              <p className="text-xs text-muted-foreground/60 font-bold mt-0.5">
+                — {dailyQuote.author}
+              </p>
+            </div>
           </div>
         </div>
 
