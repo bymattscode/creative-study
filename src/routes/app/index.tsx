@@ -287,14 +287,27 @@ function DashboardRoute() {
   const daysRemaining = goal?.targetDate ? getDaysRemaining(goal.targetDate) : null;
   const nextExamDaysRemaining = nextExam?.target_date ? getDaysRemaining(nextExam.target_date) : null;
 
-  // Calculando Horas Líquidas Totais
-  const totalMinutes = history.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
-  const netHours = Math.floor(totalMinutes / 60);
-  const netMins = totalMinutes % 60;
+  // Calculando Horas Líquidas Totais (Semana Atual)
+  const getStartOfWeek = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay(); // 0 = Domingo
+    d.setDate(d.getDate() - day);
+    return d;
+  };
+  const startOfWeek = getStartOfWeek();
+  const thisWeekSessions = history.filter((s) => new Date(s.createdAt) >= startOfWeek);
+  const thisWeekMinutes = thisWeekSessions.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
+  
+  const netHours = Math.floor(thisWeekMinutes / 60);
+  const netMins = thisWeekMinutes % 60;
 
-  // Calculando Meta Semanal Simples
-  const weeklyGoalMins = (prefs?.hours_per_day || 3) * 7 * 60;
-  const progressPercent = Math.min(100, (totalMinutes / weeklyGoalMins) * 100);
+  // Calculando Meta Semanal Sincronizada com o Plano
+  const weeklyGoalMins = planItems.length > 0
+    ? planItems.reduce((acc, item) => acc + (item.duration_minutes || 0), 0)
+    : (prefs?.hours_per_day || 3) * 7 * 60;
+    
+  const progressPercent = weeklyGoalMins > 0 ? Math.min(100, (thisWeekMinutes / weeklyGoalMins) * 100) : 0;
 
   // Calculando Ofensiva (Dias únicos no histórico)
   const uniqueDates = new Set(history.map((s) => new Date(s.createdAt).toDateString()));
@@ -611,7 +624,7 @@ function DashboardRoute() {
               </div>
               <Progress value={progressPercent} className="h-2 mb-2" />
               <p className="text-xs text-muted-foreground">
-                {progressPercent.toFixed(0)}% da meta de 20h semanais
+                {progressPercent.toFixed(0)}% da meta de {Math.round(weeklyGoalMins / 60)}h semanais
               </p>
             </CardContent>
           </Card>

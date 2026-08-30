@@ -33,17 +33,23 @@ function CalendarioRoute() {
         .order("target_date", { ascending: true });
       if (error) throw error;
       
+      // Helper para parsear datas
+      const parseSafeDate = (dStr: string) => {
+        if (!dStr) return new Date(NaN);
+        return new Date(dStr.includes("T") ? dStr : dStr + "T12:00:00Z");
+      };
+
       // Filtrar apenas as que têm data válida
       return (data as any[])
         .filter(g => {
           if (!g.target_date) return false;
-          const d = new Date(g.target_date + "T12:00:00Z");
+          const d = parseSafeDate(g.target_date);
           return !isNaN(d.getTime());
         })
         .map(g => ({
         id: g.id,
         title: g.title,
-        targetDate: new Date(g.target_date + "T12:00:00Z"),
+        targetDate: parseSafeDate(g.target_date),
         isActive: g.is_active,
         createdAt: new Date(g.created_at)
       })) as (Goal & { createdAt: Date })[];
