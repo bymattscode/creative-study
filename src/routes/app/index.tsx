@@ -28,6 +28,36 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { EditGoalDialog } from "@/components/features/EditGoalDialog";
 import { EditExamDialog } from "@/components/features/EditExamDialog";
+const QUOTES = [
+  "A persistência realiza o impossível.",
+  "O estudo é a luz que ilumina o caminho do sucesso.",
+  "Estudar não é uma obrigação, é uma porta aberta para o próprio crescimento.",
+  "Um passo de cada vez. A aprovação é uma maratona, não um sprint.",
+  "A mente que se abre a uma nova ideia jamais voltará ao seu tamanho original.",
+  "Não deseje que seja mais fácil, deseje ser melhor.",
+  "Hoje você planta, amanhã você colhe.",
+  "O suor do estudo de hoje é a tranquilidade de amanhã.",
+  "Cada página lida é um passo mais perto do seu objetivo.",
+  "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+  "A disciplina é a ponte entre metas e realizações.",
+  "Você não precisa ser grande para começar, mas precisa começar para ser grande.",
+  "O conhecimento é o único bem que não podem te roubar.",
+  "Não pare quando estiver cansado. Pare quando tiver terminado.",
+  "O sacrifício é temporário, mas a recompensa é para sempre.",
+  "Sua única limitação é aquela que você impõe a si mesmo.",
+  "A preparação de hoje determina o sucesso de amanhã.",
+  "Foco, força e fé. O caminho é longo, mas a vista vale a pena.",
+  "Transforme a motivação em hábito e o hábito em excelência.",
+  "Estude enquanto eles dormem, viva o que eles sonham."
+];
+
+const getDailyQuote = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return QUOTES[dayOfYear % QUOTES.length];
+};
 
 export const Route = createFileRoute("/app/")({
   component: DashboardRoute,
@@ -408,6 +438,12 @@ function DashboardRoute() {
             {getGreeting()},{" "}
             <span className="text-primary">{profile ? getFirstName(profile.name) : "Mestre"}!</span>
           </h1>
+          <div className="mt-3 hidden md:flex items-center gap-2">
+            <div className="w-1 h-4 bg-primary/50 rounded-full" />
+            <p className="text-sm text-muted-foreground/80 italic font-medium">
+              "{getDailyQuote()}"
+            </p>
+          </div>
         </div>
 
         {/* Constância Rápida Header */}
