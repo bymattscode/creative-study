@@ -12,6 +12,7 @@ import {
   Clock,
   CalendarDays,
   BookOpen,
+  MoreVertical,
   Trash2,
   Edit2,
   MoveRight,
