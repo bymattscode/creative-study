@@ -12,10 +12,10 @@ import {
   Clock,
   CalendarDays,
   BookOpen,
-  MoreVertical,
   Trash2,
   Edit2,
   MoveRight,
+  Plus,
 } from "lucide-react";
 import {
   Accordion,
@@ -144,6 +144,7 @@ function PlanoSemanalRoute() {
   const queryClient = useQueryClient();
 
   const [editingTask, setEditingTask] = useState<{ dayIdx: number; task: PlanTask } | null>(null);
+  const [addingTaskDay, setAddingTaskDay] = useState<{ dayIdx: number; task: Omit<PlanTask, "id"> } | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -434,6 +435,30 @@ function PlanoSemanalRoute() {
     },
   });
 
+  const createTaskMutation = useMutation({
+    mutationFn: async (task: Omit<PlanTask, "id">) => {
+      if (!weeklyPlan?.id) throw new Error("Nenhum plano ativo");
+      const newTitle = encodeTitle(task.type, task.topicName, task.status === "atrasado");
+      const { error } = await supabase
+        .from("plan_items")
+        .insert({
+          weekly_plan_id: weeklyPlan.id,
+          subject_id: task.subjectId,
+          title: newTitle,
+          duration_minutes: task.durationMinutes,
+          scheduled_for: task.scheduledFor,
+          completed: task.status === "concluido",
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardData"] });
+      setAddingTaskDay(null);
+      toast.success("Bloco adicionado!");
+    },
+  });
+
   const saveTaskMutation = useMutation({
     mutationFn: async (task: PlanTask) => {
       const newTitle = encodeTitle(task.type, task.topicName, task.status === "atrasado");
@@ -680,6 +705,32 @@ function PlanoSemanalRoute() {
                     </div>
                   ))
                 )}
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full border-dashed text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      const date = new Date(day.date);
+                      date.setHours(8, 0, 0, 0); // default to 8am
+                      
+                      setAddingTaskDay({
+                        dayIdx: idx,
+                        task: {
+                          subjectId: subjects.length > 0 ? subjects[0].id : "",
+                          subjectName: subjects.length > 0 ? subjects[0].name : "",
+                          topicName: "Novo Bloco",
+                          durationMinutes: 60,
+                          type: "teoria",
+                          status: "pendente",
+                          scheduledFor: date.toISOString(),
+                        }
+                      });
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Matéria
+                  </Button>
+                </div>
               </AccordionContent>
             </AccordionItem>
           ))}
@@ -737,6 +788,128 @@ function PlanoSemanalRoute() {
           </div>
         </div>
       )}
+
+      {/* Create Dialog */}
+      <Dialog open={!!addingTaskDay} onOpenChange={(open) => !open && setAddingTaskDay(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Bloco de Estudo</DialogTitle>
+          </DialogHeader>
+          {addingTaskDay && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="add-subject">Matéria</Label>
+                <ShadSelect
+                  value={addingTaskDay.task.subjectId}
+                  onValueChange={(val) => {
+                    const sub = subjects.find((s) => s.id === val);
+                    setAddingTaskDay({
+                      ...addingTaskDay,
+                      task: {
+                        ...addingTaskDay.task,
+                        subjectId: val,
+                        subjectName: sub ? sub.name : addingTaskDay.task.subjectName,
+                      },
+                    });
+                  }}
+                >
+                  <SelectTrigger id="add-subject">
+                    <SelectValue placeholder="Selecione a matéria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </ShadSelect>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="add-type">Atividade</Label>
+                <ShadSelect
+                  value={addingTaskDay.task.type}
+                  onValueChange={(val: ActivityType) =>
+                    setAddingTaskDay({ ...addingTaskDay, task: { ...addingTaskDay.task, type: val } })
+                  }
+                >
+                  <SelectTrigger id="add-type">
+                    <SelectValue placeholder="Tipo de estudo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ACTIVITY_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>
+                        {v}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </ShadSelect>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="add-topic">Tópico / Foco</Label>
+                <Input
+                  id="add-topic"
+                  value={addingTaskDay.task.topicName}
+                  onChange={(e) =>
+                    setAddingTaskDay({
+                      ...addingTaskDay,
+                      task: { ...addingTaskDay.task, topicName: e.target.value },
+                    })
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="add-startTime">Horário de Início</Label>
+                <Input
+                  id="add-startTime"
+                  type="time"
+                  value={new Date(addingTaskDay.task.scheduledFor).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
+                  onChange={(e) => {
+                    const [h, m] = e.target.value.split(':');
+                    if (h && m) {
+                      const d = new Date(addingTaskDay.task.scheduledFor);
+                      d.setHours(parseInt(h), parseInt(m), 0, 0);
+                      setAddingTaskDay({
+                        ...addingTaskDay,
+                        task: { ...addingTaskDay.task, scheduledFor: d.toISOString() },
+                      });
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="add-duration">Duração (minutos)</Label>
+                <Input
+                  id="add-duration"
+                  type="number"
+                  value={addingTaskDay.task.durationMinutes}
+                  onChange={(e) =>
+                    setAddingTaskDay({
+                      ...addingTaskDay,
+                      task: { ...addingTaskDay.task, durationMinutes: parseInt(e.target.value) || 0 },
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddingTaskDay(null)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => addingTaskDay && createTaskMutation.mutate(addingTaskDay.task)} 
+              disabled={createTaskMutation.isPending || !addingTaskDay?.task.subjectId}
+            >
+              {createTaskMutation.isPending ? "Adicionando..." : "Adicionar Bloco"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>

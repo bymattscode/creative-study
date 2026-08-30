@@ -277,7 +277,7 @@ function DesempenhoRoute() {
         {/* Gráfico 7 Dias */}
         <div className="col-span-1 lg:col-span-2">
           <UpgradePaywall
-            isPro={profile?.subscription_tier === "pro"}
+          isPro={true} // TESTE: profile?.subscription_tier === "pro"
             title="Gráficos Detalhados"
             description="Desbloqueie o gráfico de esforço semanal e entenda seus picos de energia com o Creative Study Pro."
           >
@@ -327,7 +327,7 @@ function DesempenhoRoute() {
 
         {/* Distribuição por Matéria */}
         <UpgradePaywall
-          isPro={profile?.subscription_tier === "pro"}
+          isPro={true} // TESTE: profile?.subscription_tier === "pro"
           title="Distribuição de Matérias"
           description="Veja exatamente onde você está gastando seu tempo e corrija desvios no plano Pro."
         >
@@ -398,7 +398,7 @@ function DesempenhoRoute() {
 
         {/* Perfil de Estudante (Tipos de Atividade) */}
         <UpgradePaywall
-          isPro={profile?.subscription_tier === "pro"}
+          isPro={true} // TESTE: profile?.subscription_tier === "pro"
           title="Perfil do Estudante"
           description="Descubra se você é um estudante passivo ou ativo assinando o Creative Study Pro."
         >
