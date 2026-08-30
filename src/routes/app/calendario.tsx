@@ -176,7 +176,7 @@ function CalendarioRoute() {
                       <div className="space-y-1">
                         <div className="flex items-center text-sm text-muted-foreground">
                           <CalendarIcon size={14} className="mr-1" />
-                          {format(mainGoal.targetDate!, "d 'de' MMMM, yyyy", { locale: ptBR })}
+                          {format(new Date(mainGoal.targetDate!), "d 'de' MMMM, yyyy", { locale: ptBR })}
                         </div>
                       </div>
                       <div className="bg-background rounded-lg py-2 px-3 text-center min-w-[80px] border border-border relative flex items-center justify-center">
@@ -218,7 +218,7 @@ function CalendarioRoute() {
                             <div className="space-y-1">
                               <div className="flex items-center text-sm text-muted-foreground">
                                 <CalendarIcon size={14} className="mr-1" />
-                                {format(exam.targetDate!, "d 'de' MMM, yyyy", { locale: ptBR })}
+                                {format(new Date(exam.targetDate!), "d 'de' MMM, yyyy", { locale: ptBR })}
                               </div>
                               {subjectName && (
                                 <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full inline-block mt-1">
