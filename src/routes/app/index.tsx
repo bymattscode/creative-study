@@ -448,12 +448,12 @@ function DashboardRoute() {
             <span className="text-primary">{profile ? getFirstName(profile.name) : "Mestre"}!</span>
           </h1>
           <div className="mt-3 hidden md:flex items-center gap-2">
-            <div className="w-1 h-8 bg-primary/50 rounded-full" />
+            <div className="w-1 h-9 bg-primary rounded-full shadow-[0_0_8px_rgba(168,255,0,0.4)]" />
             <div className="flex flex-col">
-              <p className="text-sm text-muted-foreground/80 italic font-medium">
+              <p className="text-sm text-foreground/90 italic font-medium">
                 "{dailyQuote.text}"
               </p>
-              <p className="text-xs text-muted-foreground/60 font-bold mt-0.5">
+              <p className="text-xs text-primary font-bold mt-0.5">
                 — {dailyQuote.author}
               </p>
             </div>
