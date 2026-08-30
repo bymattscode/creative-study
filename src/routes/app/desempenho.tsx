@@ -361,7 +361,7 @@ function DesempenhoRoute() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Seu Foco Principal */}
         <div className="col-span-1">
-          <Card className="bg-gradient-to-br from-surface-elevated to-[#17122b] border-border shadow-md h-full relative overflow-hidden group">
+          <Card className="bg-gradient-to-br from-surface-elevated to-muted border-border shadow-md h-full relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: mainFocus?.color || "#a8ff00" }} />
             <CardHeader className="pb-2 relative z-10">
               <CardTitle className="flex items-center gap-2 font-display text-sm tracking-wide uppercase text-muted-foreground">
@@ -466,8 +466,8 @@ function DesempenhoRoute() {
                       <Tooltip
                         cursor={{ fill: "rgba(255, 255, 255, 0.05)" }}
                         contentStyle={{
-                          backgroundColor: "#21193a",
-                          borderColor: "#3a2a67",
+                          backgroundColor: "var(--color-surface)",
+                          borderColor: "var(--color-border)",
                           borderRadius: "8px",
                           color: "#f5f7ff",
                         }}
@@ -517,8 +517,8 @@ function DesempenhoRoute() {
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#21193a",
-                            borderColor: "#3a2a67",
+                            backgroundColor: "var(--color-surface)",
+                            borderColor: "var(--color-border)",
                             borderRadius: "8px",
                             color: "#f5f7ff",
                           }}

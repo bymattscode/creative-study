@@ -492,7 +492,7 @@ function DashboardRoute() {
       </div>
 
       {/* 2. Insight IA (A Próxima Melhor Ação) */}
-      <Card className="bg-[#17122b] border-primary/30 shadow-[0_0_30px_rgba(168,255,0,0.05)] overflow-hidden relative group">
+      <Card className="bg-muted border-primary/30 shadow-[0_0_30px_rgba(168,255,0,0.05)] overflow-hidden relative group">
         <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/10 to-transparent pointer-events-none"></div>
         <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div className="space-y-2 relative z-10 w-full md:w-2/3 flex flex-col items-center md:items-start">
@@ -575,7 +575,7 @@ function DashboardRoute() {
         <div className="space-y-6 md:col-span-1">
           {/* Card: Objetivo Principal (Apenas Univ) */}
           {profile?.studentType === "universidade" && (
-            <Card className="bg-[#21193a] border-border shadow-sm group">
+            <Card className="bg-surface border-border shadow-sm group">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-primary uppercase tracking-widest flex items-center justify-between">
                   <span>Final do Semestre</span>
@@ -613,7 +613,7 @@ function DashboardRoute() {
           )}
 
           {/* Card: Próxima Prova */}
-          <Card className="bg-[#21193a] border-border shadow-sm group">
+          <Card className="bg-surface border-border shadow-sm group">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center justify-between text-primary">
                 <span>Próxima Prova</span>

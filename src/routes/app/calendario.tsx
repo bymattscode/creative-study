@@ -162,7 +162,7 @@ function CalendarioRoute() {
             {/* Main Goal (Semestre/Concurso Foco) */}
             {mainGoal && (
               <div className="grid grid-cols-1">
-                <Card className="bg-[#21193a] border-primary/50 shadow-sm overflow-hidden ring-1 ring-primary/50 group">
+                <Card className="bg-surface border-primary/50 shadow-sm overflow-hidden ring-1 ring-primary/50 group">
                   <div className="h-1 w-full bg-primary" />
                   <CardHeader className="pb-2 pt-4">
                     <CardTitle className="text-xl font-bold truncate flex items-center justify-between" title={mainGoal.title}>
@@ -207,7 +207,7 @@ function CalendarioRoute() {
                     const subjectName = subjects.find(s => s.id === parsed.subjectId)?.name;
 
                     return (
-                      <Card key={exam.id} className="bg-[#17122b] border-border shadow-sm overflow-hidden group">
+                      <Card key={exam.id} className="bg-muted border-border shadow-sm overflow-hidden group">
                         <CardHeader className="pb-2 pt-4">
                           <CardTitle className="text-lg font-bold truncate" title={parsed.name}>
                             {parsed.name}

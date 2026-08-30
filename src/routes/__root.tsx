@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../contexts/auth";
+import { ThemeProvider } from "../contexts/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -105,11 +106,13 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <Outlet />
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="cs-theme">
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <Outlet />
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

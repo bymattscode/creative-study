@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { UserProfile, Goal, Subject } from "@/types/models";
 import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { useAuth } from "@/contexts/auth";
+import { useTheme } from "@/contexts/theme-provider";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import {
   Pencil,
   Bell,
   Moon,
+  Sun,
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -54,6 +56,7 @@ const DEFAULT_COLORS = [
 function ConfiguracoesRoute() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
   const [localProfile, setLocalProfile] = useState({ name: "", studentType: "" });
@@ -606,18 +609,25 @@ function ConfiguracoesRoute() {
               <div className="flex items-center justify-between p-4 rounded-lg bg-background border border-border">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-md text-primary">
-                    <Moon size={20} />
+                    {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
                   </div>
                   <div>
-                    <h3 className="font-medium text-sm">Modo Escuro (Padrão)</h3>
+                    <h3 className="font-medium text-sm">Tema do Sistema</h3>
                     <p className="text-xs text-muted-foreground">
-                      O Creative Study foi otimizado para o modo noturno.
+                      O Creative Study agora possui modo Claro e Escuro.
                     </p>
                   </div>
                 </div>
-                <Button variant="outline" disabled className="text-xs">
-                  Tema Fixo
-                </Button>
+                <Select value={theme} onValueChange={(val: any) => setTheme(val)}>
+                  <SelectTrigger className="w-[120px] bg-background text-xs h-9">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dark">Escuro</SelectItem>
+                    <SelectItem value="light">Claro</SelectItem>
+                    <SelectItem value="system">Sistema</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-background border border-border">

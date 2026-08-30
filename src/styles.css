@@ -123,9 +123,70 @@
     0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3), 0 0 0 1px #3a2a67;
 }
 
+:root.light {
+  /* Base Backgrounds */
+  --background: #f4f5f8;
+  --foreground: #1e1b2e;
+
+  /* Surfaces (Cards, Modals, Popovers) */
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #1e1b2e;
+  --popover: #ffffff;
+  --popover-foreground: #1e1b2e;
+  --muted: #e8eaef;
+  --muted-foreground: #6b6687;
+
+  /* Borders & Inputs */
+  --border: #dcd9ea;
+  --input: #dcd9ea;
+
+  /* Brand Colors */
+  --primary: #7bb500;
+  --primary-foreground: #ffffff; 
+  --secondary: #f0eef5;
+  --secondary-foreground: #2a0863;
+  --accent: #7bb500;
+  --accent-foreground: #ffffff;
+  --ring: #7bb500;
+
+  /* Feedback Colors (Same for light) */
+  --success: #37d67a;
+  --warning: #ffcc33;
+  --destructive: #ff5c7a;
+  --destructive-foreground: #ffffff;
+
+  /* Sidebar */
+  --sidebar: #f4f5f8;
+  --sidebar-foreground: #1e1b2e;
+  --sidebar-primary: #7bb500;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8eaef;
+  --sidebar-accent-foreground: #1e1b2e;
+  --sidebar-border: #dcd9ea;
+  --sidebar-ring: #7bb500;
+
+  /* Charts */
+  --chart-1: #7bb500;
+  --chart-2: #2a0863;
+  --chart-3: #37d67a;
+  --chart-4: #ffcc33;
+  --chart-5: #ff5c7a;
+
+  /* Glow and Shadows */
+  --shadow-glow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 20px 60px -20px rgba(123, 181, 0, 0.25);
+  --shadow-card:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px #dcd9ea;
+}
+
 @layer base {
   html {
     color-scheme: dark;
+  }
+  
+  html.light {
+    color-scheme: light;
   }
 
   * {
