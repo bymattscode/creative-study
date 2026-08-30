@@ -143,13 +143,13 @@
   --input: #d6d2e6;
 
   /* Brand Colors */
-  --primary: #7bb500;
+  --primary: #2a0863;
   --primary-foreground: #ffffff; 
-  --secondary: #2a0863;
-  --secondary-foreground: #ffffff;
-  --accent: #7bb500;
+  --secondary: #eae7f2;
+  --secondary-foreground: #2a0863;
+  --accent: #2a0863;
   --accent-foreground: #ffffff;
-  --ring: #7bb500;
+  --ring: #2a0863;
 
   /* Feedback Colors (Same for light) */
   --success: #37d67a;
@@ -160,15 +160,15 @@
   /* Sidebar */
   --sidebar: #eae7f2;
   --sidebar-foreground: #21193a;
-  --sidebar-primary: #7bb500;
+  --sidebar-primary: #2a0863;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #eae7f2;
   --sidebar-accent-foreground: #2a0863;
   --sidebar-border: #d6d2e6;
-  --sidebar-ring: #7bb500;
+  --sidebar-ring: #2a0863;
 
   /* Charts */
-  --chart-1: #7bb500;
+  --chart-1: #2a0863;
   --chart-2: #2a0863;
   --chart-3: #37d67a;
   --chart-4: #ffcc33;
