@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { BookOpen, Plus, Trash2, Edit2, Check, X, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,12 +44,23 @@ function MateriasRoute() {
   const [newTopicName, setNewTopicName] = useState<Record<string, string>>({}); // subject_id -> topic name
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editingTopicName, setEditingTopicName] = useState("");
+  const [openSubjects, setOpenSubjects] = useSyncStorage<string[]>(
+    `@sinapse:materias:openSubjects:${user?.id || "anon"}`,
+    [],
+  );
 
   const { data: currentGoal } = useQuery({
     queryKey: ["currentGoal", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("goals").select("id").eq("user_id", user?.id).eq("is_active", true).single();
-      if (error && error.code !== "PGRST116") throw error;
+      const { data, error } = await supabase
+        .from("goals")
+        .select("id")
+        .eq("user_id", user?.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
       return data || null;
     },
     enabled: !!user?.id
@@ -205,7 +217,7 @@ function MateriasRoute() {
           <Button onClick={() => handleOpenSubjectDialog()}>Adicionar Primeira Matéria</Button>
         </div>
       ) : (
-        <Accordion type="multiple" className="w-full space-y-4 mt-4">
+        <Accordion type="multiple" value={openSubjects} onValueChange={setOpenSubjects} className="w-full space-y-4 mt-4">
           {subjects.map(sub => {
             const subTopics = topics.filter((t: any) => t.subject_id === sub.id);
             return (

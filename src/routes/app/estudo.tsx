@@ -3,9 +3,20 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ActivityType,
+  ACTIVITY_LABELS,
+  getActivePlanBlockForStudy,
+  setActivePlanBlockForStudy,
+  fetchActiveWeeklyPlan,
+  fetchActivePlanItems,
+  setCachedPlanItems,
+  decodeTitle,
+  encodeTitle,
+} from "@/lib/plan-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw, FastForward, History, Square } from "lucide-react";
+import { Play, Pause, RotateCcw, FastForward, History, Square, CalendarCheck, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,19 +34,25 @@ export const Route = createFileRoute("/app/estudo")({
 });
 
 type TimerMode = "Foco" | "Pausa Curta" | "Pausa Longa" | "Livre";
-type ActivityType = "teoria" | "questoes" | "revisao" | "leitura" | "redacao";
 
-const ACTIVITY_LABELS: Record<ActivityType, string> = {
-  teoria: "Teoria",
-  questoes: "Questões",
-  revisao: "Revisão",
-  leitura: "Leitura",
-  redacao: "Redação",
-};
+interface PersistedTimerState {
+  selectedSubject: string;
+  selectedType: ActivityType;
+  topic: string;
+  mode: TimerMode;
+  timeLeft: number;
+  elapsedTime: number;
+  isActive: boolean;
+  sessionCount: number;
+  activePlanItemId: string | null;
+  lastTickAt: number | null;
+}
+
+const TIMER_STORAGE_KEY = "@sinapse:estudo:timerState";
 
 // Utilities to serialize custom data into the "notes" column
-const encodeNotes = (type: ActivityType, topicName: string) =>
-  JSON.stringify({ type, topicName });
+const encodeNotes = (type: ActivityType, topicName: string, planItemId?: string | null) =>
+  JSON.stringify({ type, topicName, ...(planItemId ? { planItemId } : {}) });
 
 const decodeNotes = (raw?: string | null) => {
   if (!raw) return { type: "teoria" as ActivityType, topicName: "Sem Tópico" };
@@ -50,9 +67,138 @@ const decodeNotes = (raw?: string | null) => {
   }
 };
 
+const getDuration = (m: TimerMode) => {
+  switch (m) {
+    case "Foco":
+      return 25 * 60;
+    case "Pausa Curta":
+      return 5 * 60;
+    case "Pausa Longa":
+      return 15 * 60;
+    case "Livre":
+      return 0;
+  }
+};
+
+const loadInitialTimerState = (): PersistedTimerState => {
+  const defaultState: PersistedTimerState = {
+    selectedSubject: "",
+    selectedType: "teoria",
+    topic: "",
+    mode: "Foco",
+    timeLeft: 25 * 60,
+    elapsedTime: 0,
+    isActive: false,
+    sessionCount: 0,
+    activePlanItemId: null,
+    lastTickAt: null,
+  };
+
+  if (typeof window === "undefined") return defaultState;
+
+  try {
+    // 1. Verifica se o usuário clicou em "Estudar Agora" / "Focar" lá no Cronograma
+    const activeBlock = getActivePlanBlockForStudy();
+    const rawSaved = window.localStorage.getItem(TIMER_STORAGE_KEY);
+    const saved: PersistedTimerState | null = rawSaved ? JSON.parse(rawSaved) : null;
+
+    if (activeBlock) {
+      // Limpa o gatilho único mas mantém no estado persistido do timer
+      setActivePlanBlockForStudy(null);
+      return {
+        ...(saved || defaultState),
+        selectedSubject: activeBlock.subjectId,
+        selectedType: activeBlock.type,
+        topic: activeBlock.topicName,
+        activePlanItemId: activeBlock.planItemId,
+        mode: "Foco",
+        timeLeft: 25 * 60,
+        elapsedTime: 0,
+        isActive: false,
+        lastTickAt: null,
+      };
+    }
+
+    if (!saved) return defaultState;
+
+    // Se o timer estava rodando quando o usuário trocou de aba/página, desconta o tempo decorrido
+    if (saved.isActive && saved.lastTickAt) {
+      const diffSeconds = Math.max(0, Math.floor((Date.now() - saved.lastTickAt) / 1000));
+      if (saved.mode === "Livre") {
+        return {
+          ...saved,
+          elapsedTime: saved.elapsedTime + diffSeconds,
+          lastTickAt: Date.now(),
+        };
+      } else {
+        const nextTimeLeft = Math.max(0, saved.timeLeft - diffSeconds);
+        return {
+          ...saved,
+          timeLeft: nextTimeLeft,
+          isActive: nextTimeLeft > 0,
+          lastTickAt: nextTimeLeft > 0 ? Date.now() : null,
+        };
+      }
+    }
+
+    return saved;
+  } catch {
+    return defaultState;
+  }
+};
+
 function EstudoRoute() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const initial = loadInitialTimerState();
+
+  // Form State
+  const [selectedSubject, setSelectedSubject] = useState<string>(initial.selectedSubject);
+  const [selectedType, setSelectedType] = useState<ActivityType>(initial.selectedType);
+  const [topic, setTopic] = useState(initial.topic);
+  const [activePlanItemId, setActivePlanItemId] = useState<string | null>(initial.activePlanItemId);
+
+  // Timer State
+  const [mode, setMode] = useState<TimerMode>(initial.mode);
+  const [timeLeft, setTimeLeft] = useState(initial.timeLeft);
+  const [elapsedTime, setElapsedTime] = useState(initial.elapsedTime);
+  const [isActive, setIsActive] = useState(initial.isActive);
+  const [sessionCount, setSessionCount] = useState(initial.sessionCount);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Salva continuamente onde o usuário parou no Estúdio de Foco
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stateToPersist: PersistedTimerState = {
+      selectedSubject,
+      selectedType,
+      topic,
+      mode,
+      timeLeft,
+      elapsedTime,
+      isActive,
+      sessionCount,
+      activePlanItemId,
+      lastTickAt: isActive ? Date.now() : null,
+    };
+    try {
+      window.localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(stateToPersist));
+    } catch {
+      // ignore storage errors
+    }
+  }, [
+    selectedSubject,
+    selectedType,
+    topic,
+    mode,
+    timeLeft,
+    elapsedTime,
+    isActive,
+    sessionCount,
+    activePlanItemId,
+  ]);
 
   // Queries
   const { data: subjects = [] } = useQuery({
@@ -79,33 +225,6 @@ function EstudoRoute() {
     enabled: !!user?.id,
   });
 
-  // Form State
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedType, setSelectedType] = useState<ActivityType>("teoria");
-  const [topic, setTopic] = useState("");
-
-  // Timer State
-  const [mode, setMode] = useState<TimerMode>("Foco");
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // In seconds
-  const [elapsedTime, setElapsedTime] = useState(0); // For free mode
-  const [isActive, setIsActive] = useState(false);
-  const [sessionCount, setSessionCount] = useState(0); // Number of pomodoros
-
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const getDuration = (m: TimerMode) => {
-    switch (m) {
-      case "Foco":
-        return 25 * 60;
-      case "Pausa Curta":
-        return 5 * 60;
-      case "Pausa Longa":
-        return 15 * 60;
-      case "Livre":
-        return 0; // Starts at 0
-    }
-  };
-
   const switchMode = (m: TimerMode) => {
     setMode(m);
     setTimeLeft(getDuration(m));
@@ -130,25 +249,27 @@ function EstudoRoute() {
     setElapsedTime(0);
   };
 
-  // Mutation para salvar sessão
+  // Mutation para salvar sessão e atualizar o bloco correspondente no Cronograma
   const saveSessionMutation = useMutation({
     mutationFn: async ({
       subjectId,
       durationSeconds,
       type,
       topicName,
+      planItemId,
     }: {
       subjectId: string;
       durationSeconds: number;
       type: ActivityType;
       topicName: string;
+      planItemId?: string | null;
     }) => {
       if (!user?.id) throw new Error("Não autenticado");
 
       const durationMinutes = Math.floor(durationSeconds / 60);
-      if (durationMinutes < 1) return null; // Prevenção extra
+      if (durationMinutes < 1) return null;
 
-      const encodedNotes = encodeNotes(type, topicName);
+      const encodedNotes = encodeNotes(type, topicName, planItemId);
       const startTime = new Date(Date.now() - durationSeconds * 1000).toISOString();
       const endTime = new Date().toISOString();
 
@@ -161,7 +282,7 @@ function EstudoRoute() {
             start_time: startTime,
             end_time: endTime,
             duration_minutes: durationMinutes,
-            focus_score: 100, // mock score base
+            focus_score: 100,
             notes: encodedNotes,
           },
         ])
@@ -170,21 +291,51 @@ function EstudoRoute() {
 
       if (error) throw error;
 
+      // Sincroniza conclusão com o Cronograma (plan_items)
+      try {
+        const activePlan = await fetchActiveWeeklyPlan(user.id);
+        if (activePlan?.id) {
+          const items = await fetchActivePlanItems(user.id, activePlan.id);
+          let targetItem = planItemId
+            ? items.find((i: any) => i.id === planItemId)
+            : items.find((i: any) => !i.completed && i.subject_id === subjectId);
+
+          if (targetItem && !targetItem.completed) {
+            const decoded = decodeTitle(targetItem.title);
+            const updatedTitle = encodeTitle(
+              decoded.type,
+              decoded.topicName,
+              false,
+              decoded.dayIdx,
+            );
+            await supabase
+              .from("plan_items")
+              .update({ completed: true, title: updatedTitle })
+              .eq("id", targetItem.id);
+
+            const updatedItems = items.map((i: any) =>
+              i.id === targetItem.id ? { ...i, completed: true, title: updatedTitle } : i,
+            );
+            setCachedPlanItems(user.id, updatedItems);
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Falha ao sincronizar sessão com o cronograma:", syncErr);
+      }
+
       // Obter configuração global de revisão
       const { data: prefData } = await supabase
         .from("onboarding_preferences")
         .select("global_review_model")
         .eq("user_id", user.id)
-        .single();
-        
+        .maybeSingle();
+
       const reviewModel = prefData?.global_review_model || "classic";
 
-      // Se for teoria ou questões, e o modelo não for 'none', insere uma revisão para amanhã (Espaçada)
       if ((type === "teoria" || type === "questoes") && reviewModel !== "none") {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        // Dispara insert, se falhar não mata o processo
         await supabase.from("review_items").insert([
           {
             user_id: user.id,
@@ -201,22 +352,29 @@ function EstudoRoute() {
       return data;
     },
     onSuccess: (data, vars) => {
-      if (!data) return; // Se foi < 1 min, retorna null
+      if (!data) return;
 
       if (recentHistory.length === 0) {
         trackEvent("first_study_session_completed");
       }
 
+      if (vars.planItemId) {
+        setActivePlanItemId(null);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["recentStudySessions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardData"] });
-      queryClient.invalidateQueries({ queryKey: ["performanceData"] }); // Caso o dashboard use
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+      queryClient.invalidateQueries({ queryKey: ["studyHistory"] });
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      queryClient.invalidateQueries({ queryKey: ["weekPlanItems"] });
+      queryClient.invalidateQueries({ queryKey: ["todayMissions"] });
 
       if (vars.type === "teoria" || vars.type === "questoes") {
         toast.success(
-          `Sessão salva! Revisão de "${vars.topicName}" agendada automaticamente para amanhã.`,
+          `Sessão salva no histórico e cronograma! Revisão de "${vars.topicName}" agendada para amanhã.`,
         );
       } else {
-        toast.success(`Sessão de estudos concluída com sucesso!`);
+        toast.success(`Sessão concluída e progresso salvo no cronograma!`);
       }
     },
     onError: (err: any) => toast.error(`Erro ao salvar: ${err.message}`),
@@ -235,6 +393,7 @@ function EstudoRoute() {
         durationSeconds: 25 * 60,
         type: selectedType,
         topicName: finalTopic,
+        planItemId: activePlanItemId,
       });
 
       if ((sessionCount + 1) % 4 === 0) {
@@ -249,6 +408,7 @@ function EstudoRoute() {
           durationSeconds: elapsedTime,
           type: selectedType,
           topicName: finalTopic,
+          planItemId: activePlanItemId,
         });
       } else {
         toast("Sessão muito curta para registrar (menos de 1 min).");
@@ -263,8 +423,7 @@ function EstudoRoute() {
   // Skip button handler (Useful for testing Pomodoros quickly)
   const skipTimer = () => {
     if (mode === "Livre") {
-      // In livre mode, skip adds 60 mock minutes to elapsed and stops
-      setElapsedTime((prev) => prev + 3600); // add 1 hour
+      setElapsedTime((prev) => prev + 3600);
       setIsActive(false);
       toast("1 hora adicionada via atalho de teste. Clique em Parar para salvar.");
     } else {
@@ -306,11 +465,31 @@ function EstudoRoute() {
       ? 100
       : ((getDuration(mode) - timeLeft) / getDuration(mode)) * 100;
 
+  const activeSubjectName = subjects.find((s) => s.id === selectedSubject)?.name;
+
   return (
     <div className="flex flex-col items-center min-h-[80vh] animate-in fade-in duration-500 space-y-8 pb-12">
       {/* Header & Controls */}
       <div className="text-center w-full max-w-sm mt-4">
         <h1 className="text-3xl font-display font-bold mb-6">Estúdio de Foco</h1>
+
+        {activePlanItemId && (
+          <div className="flex items-center justify-between gap-2 bg-primary/10 border border-primary/30 text-primary px-3 py-2 rounded-xl mb-4 text-xs font-medium text-left">
+            <div className="flex items-center gap-2 truncate">
+              <CalendarCheck size={15} className="shrink-0" />
+              <span className="truncate">
+                Vinculado ao Cronograma: <strong>{activeSubjectName || "Matéria"}</strong> ({topic})
+              </span>
+            </div>
+            <button
+              onClick={() => setActivePlanItemId(null)}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              title="Desvincular bloco"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Modos */}
         <div className="flex items-center justify-center gap-1 bg-surface p-1.5 rounded-full border border-border mb-6">

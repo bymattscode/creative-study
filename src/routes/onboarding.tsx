@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { saveOnboardingData, OnboardingData } from "@/lib/onboarding-store";
 import { useAuth } from "@/contexts/auth";
+import { useSyncStorage } from "@/hooks/useSyncStorage";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/onboarding")({
 function OnboardingWizard() {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useSyncStorage<number>("@sinapse:onboardingStep", 1);
   const totalSteps = 5;
   const progress = ((step - 1) / (totalSteps - 1)) * 100;
 
@@ -41,8 +42,8 @@ function OnboardingWizard() {
     trackEvent("onboarding_started");
   }, []);
 
-  // Form State
-  const [data, setData] = useState<OnboardingData>({
+  // Form State persistido para não perder onde parou ao atualizar a página
+  const [data, setData] = useSyncStorage<OnboardingData>("@sinapse:onboardingDraft", {
     name: "",
     studentType: "",
     goalName: "",
@@ -257,7 +258,11 @@ function OnboardingWizard() {
                             const newDays = isSelected
                               ? data.studyDays.filter((d) => d !== day.id)
                               : [...data.studyDays, day.id].sort();
-                            setData({ ...data, studyDays: newDays });
+                            const nextHours = { ...(data.dailyStudyHours || {}) };
+                            if (!isSelected && nextHours[day.id.toString()] === undefined) {
+                              nextHours[day.id.toString()] = 120;
+                            }
+                            setData({ ...data, studyDays: newDays, dailyStudyHours: nextHours });
                           }}
                           className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${
                             isSelected

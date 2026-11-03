@@ -44,6 +44,13 @@ export const saveOnboardingData = async (userId: string, data: OnboardingData) =
     if (profileError) throw new Error(`Erro ao criar perfil: ${profileError.message}`);
 
     // 3. Inserir Onboarding Preferences
+    const normalizedDailyHours: Record<string, number> = { ...(data.dailyStudyHours || {}) };
+    data.studyDays.forEach((d) => {
+      if (normalizedDailyHours[d.toString()] === undefined) {
+        normalizedDailyHours[d.toString()] = 120;
+      }
+    });
+
     const { error: prefError } = await supabase
       .from("onboarding_preferences")
       .upsert({
@@ -55,7 +62,7 @@ export const saveOnboardingData = async (userId: string, data: OnboardingData) =
         long_break_length: 15,
         minutes_per_day: data.minutesPerDay,
         study_days: data.studyDays,
-        daily_study_hours: data.dailyStudyHours,
+        daily_study_hours: normalizedDailyHours,
         preferred_time: data.preferredTime.join(", "),
         global_review_model: 'classic',
       }, { onConflict: "user_id" });
@@ -80,8 +87,10 @@ export const saveOnboardingData = async (userId: string, data: OnboardingData) =
       if (subjectsError) throw new Error(`Erro nas matérias: ${subjectsError.message}`);
     }
 
-    // 5. Marcar Onboarding Concluído localmente (cache leve para evitar fetchs repetidos no root)
+    // 5. Marcar Onboarding Concluído localmente e limpar rascunho temporário
     localStorage.setItem("@sinapse:onboardingCompleted", "true");
+    localStorage.removeItem("@sinapse:onboardingDraft");
+    localStorage.removeItem("@sinapse:onboardingStep");
 
     return true;
   } catch (error) {

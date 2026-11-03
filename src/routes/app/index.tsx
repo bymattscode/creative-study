@@ -5,6 +5,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { generateDailyInsight } from "@/lib/ai-insights";
+import {
+  fetchActiveWeeklyPlan,
+  fetchActivePlanItems,
+  getCachedWeeklyPlan,
+  getCachedPlanItems,
+  setCachedPlanItems,
+  getItemDayIdx,
+  getTodayDayIdx,
+  togglePlanItemCompletionInDb,
+} from "@/lib/plan-utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -85,7 +95,7 @@ function DashboardRoute() {
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single();
+      const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).maybeSingle();
       return data ? {
         id: data.id,
         userId: data.user_id,
@@ -133,7 +143,7 @@ function DashboardRoute() {
     queryKey: ["prefs", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("onboarding_preferences").select("*").eq("user_id", user.id).single();
+      const { data } = await supabase.from("onboarding_preferences").select("*").eq("user_id", user.id).maybeSingle();
       return data;
     },
     enabled: !!user,
@@ -182,99 +192,68 @@ function DashboardRoute() {
 
   const { data: weeklyPlan } = useQuery({
     queryKey: ["weeklyPlan", user?.id],
-    queryFn: async () => {
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-      const { data, error } = await supabase
-        .from("weekly_plans")
-        .select("*")
-        .eq("user_id", user?.id)
-        .lte("start_date", today)
-        .gte("end_date", today)
-        .single();
-      if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows returned
-      return data || null;
-    },
+    queryFn: () => fetchActiveWeeklyPlan(user!.id),
+    initialData: () => getCachedWeeklyPlan(user?.id) || undefined,
     enabled: !!user?.id,
-  });
-
-  const { data: todayMissions = [] } = useQuery({
-    queryKey: ["todayMissions", weeklyPlan?.id],
-    queryFn: async () => {
-      if (!weeklyPlan) return [];
-      
-      const today = new Date();
-      // Start and end of today
-      const startOfDay = new Date(today.setHours(0,0,0,0)).toISOString();
-      const endOfDay = new Date(today.setHours(23,59,59,999)).toISOString();
-
-      const { data, error } = await supabase
-        .from("plan_items")
-        .select("*")
-        .eq("weekly_plan_id", weeklyPlan.id)
-        .gte("scheduled_for", startOfDay)
-        .lte("scheduled_for", endOfDay)
-        .order("scheduled_for", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!weeklyPlan,
   });
 
   const { data: planItems = [] } = useQuery({
     queryKey: ["weekPlanItems", weeklyPlan?.id],
-    queryFn: async () => {
-      if (!weeklyPlan) return [];
-      const { data, error } = await supabase
-        .from("plan_items")
-        .select("*")
-        .eq("weekly_plan_id", weeklyPlan.id);
-      if (error) throw error;
-      return data || [];
+    queryFn: () => fetchActivePlanItems(user!.id, weeklyPlan!.id),
+    initialData: () => {
+      const cached = getCachedPlanItems(user?.id);
+      if (weeklyPlan?.id && cached.length > 0 && cached[0]?.weekly_plan_id === weeklyPlan.id) {
+        return cached;
+      }
+      return undefined;
     },
-    enabled: !!weeklyPlan,
+    enabled: !!weeklyPlan?.id && !!user?.id,
   });
+
+  const todayMissions = useMemo(() => {
+    const todayIdx = getTodayDayIdx();
+    const forToday = planItems.filter((item: any) => getItemDayIdx(item) === todayIdx);
+    if (forToday.length > 0) return forToday;
+    // Se não houver blocos para o dia de hoje, exibe os próximos blocos pendentes do cronograma
+    return planItems.filter((item: any) => !item.completed).slice(0, 3);
+  }, [planItems]);
 
   const toggleMissionMutation = useMutation({
     mutationFn: async (mission: any) => {
-      const newStatus = !mission.completed;
-      
-      // Update plan_item
-      await supabase.from("plan_items").update({ completed: newStatus }).eq("id", mission.id);
-
-      if (newStatus) {
-        // Create a study session
-        await supabase.from("study_sessions").insert({
-          user_id: user?.id,
-          subject_id: mission.subject_id,
-          duration_minutes: mission.duration_minutes,
-          start_time: new Date().toISOString(),
-          end_time: new Date(Date.now() + mission.duration_minutes * 60000).toISOString(),
-          focus_score: 100,
-        });
-      } else {
-        // Delete a matching study session for today
-        const today = new Date();
-        const startOfDay = new Date(today.setHours(0,0,0,0)).toISOString();
-        const endOfDay = new Date(today.setHours(23,59,59,999)).toISOString();
-        
-        const { data } = await supabase.from("study_sessions")
-          .select("id")
-          .eq("user_id", user?.id)
-          .eq("subject_id", mission.subject_id)
-          .eq("duration_minutes", mission.duration_minutes)
-          .gte("created_at", startOfDay)
-          .lte("created_at", endOfDay)
-          .limit(1);
-          
-        if (data && data.length > 0) {
-          await supabase.from("study_sessions").delete().eq("id", data[0].id);
-        }
+      if (!user?.id) throw new Error("Usuário não autenticado");
+      return togglePlanItemCompletionInDb({
+        userId: user.id,
+        itemId: mission.id,
+        subjectId: mission.subject_id || null,
+        durationMinutes: mission.duration_minutes || 60,
+        currentCompleted: !!mission.completed,
+        rawTitle: mission.title,
+      });
+    },
+    onMutate: async (mission: any) => {
+      await queryClient.cancelQueries({ queryKey: ["weekPlanItems", weeklyPlan?.id] });
+      const previousItems = queryClient.getQueryData<any[]>(["weekPlanItems", weeklyPlan?.id]) || planItems;
+      const updated = previousItems.map((item: any) =>
+        item.id === mission.id ? { ...item, completed: !mission.completed } : item,
+      );
+      queryClient.setQueryData(["weekPlanItems", weeklyPlan?.id], updated);
+      queryClient.setQueryData(["planItems", weeklyPlan?.id], updated);
+      setCachedPlanItems(user?.id, updated);
+      return { previousItems };
+    },
+    onError: (_err, _mission, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(["weekPlanItems", weeklyPlan?.id], context.previousItems);
+        queryClient.setQueryData(["planItems", weeklyPlan?.id], context.previousItems);
+        setCachedPlanItems(user?.id, context.previousItems);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todayMissions"] });
-      queryClient.invalidateQueries({ queryKey: ["history"] }); // refresh dashboard hours
+      queryClient.invalidateQueries({ queryKey: ["weekPlanItems"] });
+      queryClient.invalidateQueries({ queryKey: ["planItems"] });
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+      queryClient.invalidateQueries({ queryKey: ["studyHistory"] });
     }
   });
 
@@ -326,7 +305,7 @@ function DashboardRoute() {
   const daysRemaining = goal?.targetDate ? getDaysRemaining(goal.targetDate) : null;
   const nextExamDaysRemaining = nextExam?.target_date ? getDaysRemaining(nextExam.target_date) : null;
 
-  // Calculando Horas Líquidas Totais (Semana Atual)
+  // Calculando Horas Líquidas Totais (Semana Atual + Blocos Concluídos no Cronograma)
   const getStartOfWeek = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -336,7 +315,11 @@ function DashboardRoute() {
   };
   const startOfWeek = getStartOfWeek();
   const thisWeekSessions = history.filter((s) => new Date(s.createdAt) >= startOfWeek);
-  const thisWeekMinutes = thisWeekSessions.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
+  const sessionMinutes = thisWeekSessions.reduce((acc, sess) => acc + (sess.durationMinutes || 0), 0);
+  const completedPlanMinutes = planItems
+    .filter((item: any) => item.completed)
+    .reduce((acc: number, item: any) => acc + (item.duration_minutes || 0), 0);
+  const thisWeekMinutes = Math.max(sessionMinutes, completedPlanMinutes);
   
   const netHours = Math.floor(thisWeekMinutes / 60);
   const netMins = thisWeekMinutes % 60;
@@ -369,11 +352,22 @@ function DashboardRoute() {
   };
 
   const getSubjectProgress = (subjectId: string) => {
+    const subPlanItems = planItems.filter((item: any) => item.subject_id === subjectId);
+    const totalPlannedMins = subPlanItems.reduce((acc: number, item: any) => acc + (item.duration_minutes || 0), 0);
+    const completedPlannedMins = subPlanItems
+      .filter((item: any) => item.completed)
+      .reduce((acc: number, item: any) => acc + (item.duration_minutes || 0), 0);
+
+    const planProgress = totalPlannedMins > 0 ? Math.min(100, Math.round((completedPlannedMins / totalPlannedMins) * 100)) : 0;
+
     const subjectMinutes = history
       .filter((s) => s.subjectId === subjectId)
       .reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-    // Assume 10 horas (600 minutos) para fechar o edital de uma matéria para o MVP
-    return Math.min(100, Math.floor((subjectMinutes / 600) * 100));
+    const sessionProgress = totalPlannedMins > 0
+      ? Math.min(100, Math.round((subjectMinutes / totalPlannedMins) * 100))
+      : Math.min(100, Math.floor((subjectMinutes / 600) * 100));
+
+    return Math.max(planProgress, sessionProgress);
   };
 
   if (loadingProfile && !profile) {

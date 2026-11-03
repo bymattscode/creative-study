@@ -73,8 +73,8 @@ function ConfiguracoesRoute() {
         .from("user_profiles")
         .select("*")
         .eq("user_id", user?.id)
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
+        .maybeSingle();
+      if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
@@ -87,8 +87,8 @@ function ConfiguracoesRoute() {
         .from("onboarding_preferences")
         .select("*")
         .eq("user_id", user?.id)
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
+        .maybeSingle();
+      if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
@@ -102,41 +102,65 @@ function ConfiguracoesRoute() {
       });
     }
     if (dbPrefs) {
+      const studyDays: number[] = dbPrefs.study_days || [1, 2, 3, 4, 5];
+      const existingHours = dbPrefs.daily_study_hours || {};
+      const normalizedHours: Record<string, number> = { ...existingHours };
+      studyDays.forEach((d) => {
+        if (normalizedHours[d.toString()] === undefined) {
+          normalizedHours[d.toString()] = 120;
+        }
+      });
       setLocalPrefs({
         minutesPerDay: dbPrefs.minutes_per_day || 240,
-        studyDays: dbPrefs.study_days || [1,2,3,4,5],
-        dailyStudyHours: dbPrefs.daily_study_hours || {},
+        studyDays,
+        dailyStudyHours: normalizedHours,
       });
     }
   }, [dbProfile, dbPrefs]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      if (dbProfile) {
-        await supabase
-          .from("user_profiles")
-          .update({
+      if (!user?.id) throw new Error("Usuário não autenticado.");
+
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .upsert(
+          {
+            user_id: user.id,
             name: localProfile.name,
             student_type: localProfile.studentType,
-          })
-          .eq("id", dbProfile.id);
-      }
-      if (dbPrefs) {
-        await supabase
-          .from("onboarding_preferences")
-          .update({
+          },
+          { onConflict: "user_id" },
+        );
+      if (profileError) throw profileError;
+
+      const normalizedHours: Record<string, number> = { ...localPrefs.dailyStudyHours };
+      localPrefs.studyDays.forEach((d) => {
+        if (normalizedHours[d.toString()] === undefined) {
+          normalizedHours[d.toString()] = 120;
+        }
+      });
+
+      const { error: prefsError } = await supabase
+        .from("onboarding_preferences")
+        .upsert(
+          {
+            user_id: user.id,
             minutes_per_day: localPrefs.minutesPerDay,
             study_days: localPrefs.studyDays,
-            daily_study_hours: localPrefs.dailyStudyHours,
-          })
-          .eq("id", dbPrefs.id);
-      }
+            daily_study_hours: normalizedHours,
+          },
+          { onConflict: "user_id" },
+        );
+      if (prefsError) throw prefsError;
     },
     onSuccess: () => {
-      toast.success("Perfil atualizado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["userPrefs", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+      toast.success("Perfil e rotina salvos com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["userPrefs"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["preferences"] });
+      queryClient.invalidateQueries({ queryKey: ["prefs"] });
     },
     onError: (err) => {
       toast.error("Erro ao atualizar perfil: " + err.message);
@@ -401,7 +425,15 @@ function ConfiguracoesRoute() {
                             const newDays = isSelected
                               ? localPrefs.studyDays.filter((d) => d !== day.id)
                               : [...localPrefs.studyDays, day.id].sort();
-                            setLocalPrefs({ ...localPrefs, studyDays: newDays });
+                            const nextHours = { ...localPrefs.dailyStudyHours };
+                            if (!isSelected && nextHours[day.id.toString()] === undefined) {
+                              nextHours[day.id.toString()] = 120;
+                            }
+                            setLocalPrefs({
+                              ...localPrefs,
+                              studyDays: newDays,
+                              dailyStudyHours: nextHours,
+                            });
                           }}
                           className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${
                             isSelected
