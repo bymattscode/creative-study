@@ -17,6 +17,7 @@ import {
   encodeTitle,
   decodeTitle,
   getItemDayIdx,
+  getTodayDayIdx,
   fetchActiveWeeklyPlan,
   fetchActivePlanItems,
   getCachedWeeklyPlan,
@@ -266,11 +267,33 @@ function PlanoSemanalRoute() {
     return Math.round((completedTasksCount / allTasksFlat.length) * 100);
   }, [allTasksFlat.length, completedTasksCount]);
 
-  // Determina exatamente o bloco onde o usuário parou
+  const todayIdx = useMemo(() => getTodayDayIdx(), []);
+  const todayTasks = useMemo(() => plan[todayIdx]?.items || [], [plan, todayIdx]);
+  const todayPendingTasks = useMemo(
+    () => todayTasks.filter((t) => t.status !== "concluido"),
+    [todayTasks],
+  );
+  const todayCompletedCount = useMemo(
+    () => todayTasks.filter((t) => t.status === "concluido").length,
+    [todayTasks],
+  );
+
+  // Determina o bloco prioritário de hoje (ou próximo pendente da semana caso hoje esteja concluído/vazio)
   const resumeTask: PlanTask | null = useMemo(() => {
     if (allTasksFlat.length === 0) return null;
 
-    // 1. Se há um checkpoint salvo que ainda está pendente ou atrasado, prioriza ele
+    // 1. Se há um checkpoint salvo para hoje que ainda está pendente, prioriza ele
+    if (checkpointTaskId) {
+      const savedToday = todayPendingTasks.find((t) => t.id === checkpointTaskId);
+      if (savedToday) return savedToday;
+    }
+
+    // 2. Prioriza o primeiro bloco pendente de HOJE
+    if (todayPendingTasks.length > 0) {
+      return todayPendingTasks[0];
+    }
+
+    // 3. Se hoje não tem pendências, verifica se há um checkpoint salvo em outro dia
     if (checkpointTaskId) {
       const saved = allTasksFlat.find(
         (t) => t.id === checkpointTaskId && t.status !== "concluido",
@@ -278,25 +301,9 @@ function PlanoSemanalRoute() {
       if (saved) return saved;
     }
 
-    // 2. Encontra o último bloco concluído e pega o próximo não-concluído logo após ele
-    let lastCompletedIndex = -1;
-    for (let i = allTasksFlat.length - 1; i >= 0; i--) {
-      if (allTasksFlat[i].status === "concluido") {
-        lastCompletedIndex = i;
-        break;
-      }
-    }
-
-    if (lastCompletedIndex !== -1) {
-      const nextAfterCompleted = allTasksFlat
-        .slice(lastCompletedIndex + 1)
-        .find((t) => t.status !== "concluido");
-      if (nextAfterCompleted) return nextAfterCompleted;
-    }
-
-    // 3. Caso contrário, retorna o primeiro pendente/atrasado da fila
+    // 4. Caso contrário, retorna o próximo pendente da semana
     return allTasksFlat.find((t) => t.status !== "concluido") || null;
-  }, [allTasksFlat, checkpointTaskId]);
+  }, [allTasksFlat, todayPendingTasks, checkpointTaskId]);
 
   const invalidateAllPlanQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["weeklyPlan"] });
@@ -833,18 +840,23 @@ function PlanoSemanalRoute() {
         </div>
       </div>
 
-      {/* Card: Continuar de onde você parou */}
+      {/* Card: O que tenho que estudar hoje */}
       {!hasEmptyPlan && (
         <Card className="bg-surface-elevated border-primary/40 shadow-[0_0_25px_rgba(168,255,0,0.06)] overflow-hidden">
           <CardContent className="p-4 md:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
                 <Sparkles size={14} />
-                {resumeTask ? "Continuar de onde você parou" : "Meta Semanal Concluída"}
+                {resumeTask ? "O que tenho que estudar hoje" : "Meta Semanal Concluída"}
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                {todayTasks.length > 0 && (
+                  <span className="text-primary font-semibold">
+                    Hoje ({WEEK_DAYS[todayIdx]}): {todayCompletedCount}/{todayTasks.length}
+                  </span>
+                )}
                 <span>
-                  {completedTasksCount} de {allTasksFlat.length} blocos concluídos (
+                  Semana: {completedTasksCount} de {allTasksFlat.length} blocos concluídos (
                   {progressPercentage}%)
                 </span>
               </div>
@@ -852,7 +864,81 @@ function PlanoSemanalRoute() {
 
             <Progress value={progressPercentage} className="h-2" />
 
-            {resumeTask ? (
+            {todayPendingTasks.length > 0 ? (
+              <div className="space-y-2.5 pt-1">
+                {todayPendingTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-background/60 p-4 rounded-xl border border-border"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-3 h-10 rounded-full shrink-0 mt-0.5"
+                        style={{ backgroundColor: task.subjectColor }}
+                      />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-none text-[10px] uppercase font-bold">
+                            {WEEK_DAYS[task.dayIdx]}
+                          </Badge>
+                          <span className="font-bold text-base text-foreground">
+                            {task.subjectName}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] h-5 uppercase px-1.5 ${ACTIVITY_COLORS[task.type]
+                              }`}
+                          >
+                            {ACTIVITY_LABELS[task.type]}
+                          </Badge>
+                          {task.status === "atrasado" && (
+                            <Badge
+                              variant="destructive"
+                              className="text-[10px] h-5 uppercase px-1.5"
+                            >
+                              Atrasado
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <BookOpen size={13} className="text-primary" />
+                          <span>{task.topicName}</span>
+                          <span>•</span>
+                          <Clock size={13} />
+                          <span>
+                            {new Date(task.scheduledFor).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            ({task.durationMinutes} min)
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleStatusMutation.mutate(task)}
+                        className="flex-1 md:flex-none border-border hover:border-primary/50"
+                      >
+                        <CheckCircle2 className="mr-1.5 h-4 w-4 text-primary" />
+                        Concluir Bloco
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleStartStudyFromBlock(task)}
+                        className="flex-1 md:flex-none shadow-glow font-bold"
+                      >
+                        <Play className="mr-1.5 h-4 w-4 fill-current" />
+                        Estudar Agora
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : resumeTask ? (
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-1 bg-background/60 p-4 rounded-xl border border-border">
                 <div className="flex items-start gap-3">
                   <div
@@ -1003,9 +1089,10 @@ function PlanoSemanalRoute() {
                     <div className="flex items-center justify-between w-full pr-4">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-lg">{day.dayName}</h3>
-                        {resumeTask?.dayIdx === idx && (
+                        {(idx === todayIdx ||
+                          (todayPendingTasks.length === 0 && resumeTask?.dayIdx === idx)) && (
                           <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px] uppercase">
-                            Ponto atual
+                            O que tenho que estudar hoje
                           </Badge>
                         )}
                       </div>
@@ -1050,7 +1137,8 @@ function PlanoSemanalRoute() {
                       </p>
                     ) : (
                       day.items.map((task) => {
-                        const isResumePoint = resumeTask?.id === task.id;
+                        const isTodayPending = idx === todayIdx && task.status !== "concluido";
+                        const isResumePoint = isTodayPending || resumeTask?.id === task.id;
                         return (
                           <div
                             key={task.id}
@@ -1106,7 +1194,7 @@ function PlanoSemanalRoute() {
                                   )}
                                   {isResumePoint && (
                                     <Badge className="bg-primary/20 text-primary border-none text-[10px] h-5 uppercase px-1.5">
-                                      Onde você parou
+                                      O que tenho que estudar hoje
                                     </Badge>
                                   )}
                                 </div>
@@ -1164,12 +1252,12 @@ function PlanoSemanalRoute() {
                                       onClick={() => {
                                         setCheckpointTaskId(task.id);
                                         toast.success(
-                                          "Marcado como ponto atual de retomada no cronograma!",
+                                          "Destacado em 'O que tenho que estudar hoje'!",
                                         );
                                       }}
                                     >
-                                      <Sparkles className="mr-2 h-4 w-4 text-primary" /> Marcar
-                                      "Parei Aqui"
+                                      <Sparkles className="mr-2 h-4 w-4 text-primary" /> Destacar
+                                      para estudar hoje
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem
