@@ -200,7 +200,7 @@ export function GenerateFlashcardsAIDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display text-xl font-bold text-foreground">
             <Sparkles className="h-5 w-5 text-primary" />
-            Gerar Flashcards com IA (Gemini)
+            Gerar Flashcards com IA
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             Escolha a matéria, selecione um tópico ou cole seu resumo e revise as cartas antes de
@@ -320,7 +320,7 @@ export function GenerateFlashcardsAIDialog({
             <div className="rounded-xl border border-primary/30 bg-[#16132b] p-5 space-y-4">
               <div className="flex items-center gap-2.5 text-sm font-bold text-primary">
                 <Sparkles className="h-4 w-4 animate-spin" />
-                <span>Consultando Gemini API e elaborando flashcards universitários...</span>
+                <span>Gerando flashcards...</span>
               </div>
               <div className="space-y-3 animate-pulse">
                 {Array.from({ length: Math.min(quantidade, 3) }).map((_, idx) => (

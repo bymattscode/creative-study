@@ -213,7 +213,7 @@ export function FlashcardsTabContent() {
                 Nenhum flashcard criado ainda
               </p>
               <p className="text-sm text-muted-foreground">
-                Crie suas cartas manualmente ou use a Gemini IA para gerar perguntas e respostas
+                Crie suas cartas manualmente ou use a IA para gerar perguntas e respostas
                 automaticamente a partir dos tópicos das suas matérias.
               </p>
             </div>

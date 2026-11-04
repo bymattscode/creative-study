@@ -69,7 +69,7 @@ export function FlashcardBackExplanation({ card }: FlashcardBackExplanationProps
       <div className="rounded-xl border border-primary/30 bg-[#16132b] p-4 space-y-2.5 animate-pulse">
         <div className="flex items-center gap-2 text-xs font-bold text-primary">
           <Sparkles className="h-4 w-4 animate-spin" />
-          <span>Gerando explicação didática com Gemini IA...</span>
+          <span>Gerando explicação...</span>
         </div>
         <div className="h-3 w-full rounded bg-surface-elevated" />
         <div className="h-3 w-5/6 rounded bg-surface-elevated" />
@@ -122,7 +122,7 @@ export function FlashcardBackExplanation({ card }: FlashcardBackExplanationProps
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
           <Sparkles size={13} />
-          Explicação Didática (Gemini IA)
+          Explicação Didática
         </span>
       </div>
       <p className="text-sm text-foreground/95 leading-relaxed whitespace-pre-wrap">
