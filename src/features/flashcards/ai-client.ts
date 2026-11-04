@@ -12,7 +12,7 @@ export interface ExplainFlashcardParams {
   verso: string;
 }
 
-const CLIENT_TIMEOUT_MS = 28000;
+const CLIENT_TIMEOUT_MS = 45000;
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -20,7 +20,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
     timer = setTimeout(() => {
       reject(
         new Error(
-          "A solicitação para a IA demorou mais do que o esperado. Verifique sua conexão e tente novamente.",
+          "A solicitação demorou mais do que o esperado. Verifique sua conexão e tente novamente.",
         ),
       );
     }, timeoutMs);
@@ -89,7 +89,7 @@ export async function generateFlashcardsWithAI(
   if (error) {
     const detailedMsg = await extractFunctionErrorMessage(
       error,
-      "Não foi possível conectar à função de IA no Supabase.",
+      "Não foi possível conectar ao servidor de IA.",
     );
     throw new Error(detailedMsg);
   }
@@ -102,33 +102,44 @@ export async function generateFlashcardsWithAI(
 }
 
 /**
- * Solicita uma explicação didática curta (2–4 frases) à Edge Function `flashcards-ai` (proxy Gemini API).
+ * Solicita uma explicação didática curta (2–4 frases) à Edge Function `flashcards-ai`.
  */
 export async function explainFlashcardWithAI(params: ExplainFlashcardParams): Promise<string> {
-  const { data, error } = await withTimeout(
-    supabase.functions.invoke("flashcards-ai", {
-      body: {
-        action: "explain",
-        materiaNome: params.materiaNome,
-        frente: params.frente,
-        verso: params.verso,
-      },
-    }),
-    CLIENT_TIMEOUT_MS,
-  );
-
-  if (error) {
-    const detailedMsg = await extractFunctionErrorMessage(
-      error,
-      "Não foi possível obter a explicação da IA. Tente novamente em instantes.",
+  const invokeOnce = async () => {
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke("flashcards-ai", {
+        body: {
+          action: "explain",
+          materiaNome: params.materiaNome,
+          frente: params.frente,
+          verso: params.verso,
+        },
+      }),
+      CLIENT_TIMEOUT_MS,
     );
-    throw new Error(detailedMsg);
-  }
 
-  if (data?.error) {
-    throw new Error(String(data.error));
-  }
+    if (error) {
+      const detailedMsg = await extractFunctionErrorMessage(
+        error,
+        "Não foi possível obter a explicação da IA. Tente novamente.",
+      );
+      throw new Error(detailedMsg);
+    }
 
-  const explanation = typeof data?.explanation === "string" ? data.explanation.trim() : "";
-  return explanation;
+    if (data?.error) {
+      throw new Error(String(data.error));
+    }
+
+    return typeof data?.explanation === "string" ? data.explanation.trim() : "";
+  };
+
+  try {
+    return await invokeOnce();
+  } catch (firstErr: unknown) {
+    const msg = firstErr instanceof Error ? firstErr.message : "";
+    if (msg.toLowerCase().includes("tempo limite") || msg.toLowerCase().includes("demorou")) {
+      return await invokeOnce();
+    }
+    throw firstErr;
+  }
 }

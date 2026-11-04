@@ -16,13 +16,13 @@ const corsHeaders = {
 };
 
 const PREFERRED_GEMINI_MODELS = [
-  "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
-  "gemini-flash-latest",
+  "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-2.0-flash-lite",
+  "gemini-flash-latest",
 ];
-const REQUEST_TIMEOUT_MS = 25000;
+const MODEL_TIMEOUT_MS = 18000;
 
 function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -105,13 +105,14 @@ async function callGeminiAPI(
 
   const tryModel = async (model: string): Promise<string | null> => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
         apiKey,
       )}`;
 
+      const is25Model = model.includes("2.5");
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,6 +123,7 @@ async function callGeminiAPI(
           generationConfig: {
             temperature: 0.4,
             ...(expectJson ? { responseMimeType: "application/json" } : {}),
+            ...(is25Model ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
           },
         }),
       });
@@ -130,7 +132,7 @@ async function callGeminiAPI(
 
       if (!response.ok) {
         const errText = await response.text();
-        lastError = new Error(`Gemini HTTP ${response.status} (${model}): ${errText}`);
+        lastError = new Error(`HTTP ${response.status} (${model}): ${errText}`);
         return null;
       }
 
@@ -150,7 +152,8 @@ async function callGeminiAPI(
     } catch (err: unknown) {
       clearTimeout(timeoutId);
       if (err instanceof Error && err.name === "AbortError") {
-        throw new Error("Tempo limite excedido ao consultar a Gemini API. Tente novamente.");
+        lastError = new Error("Tempo limite excedido. Tente novamente.");
+        return null;
       }
       lastError = err instanceof Error ? err : new Error(String(err));
       return null;
@@ -162,7 +165,6 @@ async function callGeminiAPI(
     if (result) return result;
   }
 
-  // Fallback automático descobrindo os modelos disponíveis na chave do usuário
   const discovered = await discoverAvailableGeminiModels(apiKey);
   for (const model of discovered) {
     if (candidateModels.includes(model)) continue;
@@ -170,7 +172,7 @@ async function callGeminiAPI(
     if (result) return result;
   }
 
-  throw lastError || new Error("Não foi possível obter resposta da Gemini API.");
+  throw lastError || new Error("Não foi possível obter resposta da IA.");
 }
 
 Deno.serve(async (req: Request) => {
@@ -186,8 +188,7 @@ Deno.serve(async (req: Request) => {
   if (!apiKey) {
     return jsonResponse(
       {
-        error:
-          "O secret GEMINI_API_KEY ainda não foi configurado no Supabase (Edge Functions → Secrets).",
+        error: "O secret GEMINI_API_KEY não foi encontrado no Supabase.",
         code: "MISSING_API_KEY",
       },
       200,
@@ -227,8 +228,7 @@ Deno.serve(async (req: Request) => {
       } catch {
         return jsonResponse(
           {
-            error:
-              "A IA retornou um formato inesperado. Tente ajustar o conteúdo e gerar novamente.",
+            error: "A IA retornou um formato inesperado. Tente ajustar o conteúdo e gerar novamente.",
             code: "INVALID_AI_JSON",
           },
           200,
@@ -256,7 +256,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Ação inválida. Use 'generate' ou 'explain'." }, 200);
   } catch (err: unknown) {
     const message =
-      err instanceof Error ? err.message : "Erro inesperado ao consultar a Gemini API.";
+      err instanceof Error ? err.message : "Erro inesperado ao processar solicitação.";
     return jsonResponse({ error: message }, 200);
   }
 });
