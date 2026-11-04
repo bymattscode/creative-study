@@ -21,7 +21,10 @@ import {
   History,
   Trash2,
   Pencil,
+  Layers,
 } from "lucide-react";
+import { FlashcardsTabContent } from "@/features/flashcards/FlashcardsTabContent";
+import { TodayFlashcardsReviewSection } from "@/features/flashcards/TodayFlashcardsReviewSection";
 import {
   Dialog,
   DialogContent,
@@ -538,7 +541,7 @@ function RevisoesRoute() {
       </Card>
 
       <Tabs defaultValue="hoje" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-surface border border-border p-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto bg-surface border border-border p-1">
           <TabsTrigger
             value="atrasadas"
             className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-500"
@@ -553,6 +556,12 @@ function RevisoesRoute() {
           </TabsTrigger>
           <TabsTrigger value="proximas">
             <CalendarDays size={14} className="mr-2" /> Próximas ({futureReviews.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="flashcards"
+            className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+          >
+            <Layers size={14} className="mr-2" /> Flashcards
           </TabsTrigger>
         </TabsList>
 
@@ -573,6 +582,7 @@ function RevisoesRoute() {
           </TabsContent>
 
           <TabsContent value="hoje">
+            <TodayFlashcardsReviewSection />
             {isLoading ? (
               <div className="text-center py-12 text-muted-foreground animate-pulse">
                 Carregando revisões...
@@ -600,6 +610,10 @@ function RevisoesRoute() {
             ) : (
               futureReviews.map((r) => <ReviewCard key={r.id} item={r} />)
             )}
+          </TabsContent>
+
+          <TabsContent value="flashcards">
+            <FlashcardsTabContent />
           </TabsContent>
         </div>
       </Tabs>
