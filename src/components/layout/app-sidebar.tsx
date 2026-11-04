@@ -33,6 +33,7 @@ const mainNavItems = [
   { title: "Calendário", url: "/app/calendario", icon: CalendarDays },
   { title: "Plano Semanal", url: "/app/plano", icon: Calendar },
   { title: "Matérias", url: "/app/materias", icon: BookOpen },
+  { title: "Grade", url: "/app/grade", icon: CalendarDays },
   { title: "Revisões", url: "/app/revisoes", icon: RefreshCcw },
   { title: "Estudo", url: "/app/estudo", icon: Timer },
   { title: "Desempenho", url: "/app/desempenho", icon: LineChart },

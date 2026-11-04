@@ -19,6 +19,7 @@ import { Route as AppUpgradeRouteImport } from './routes/app/upgrade'
 import { Route as AppRevisoesRouteImport } from './routes/app/revisoes'
 import { Route as AppPlanoRouteImport } from './routes/app/plano'
 import { Route as AppMateriasRouteImport } from './routes/app/materias'
+import { Route as AppGradeRouteImport } from './routes/app/grade'
 import { Route as AppEstudoRouteImport } from './routes/app/estudo'
 import { Route as AppDesempenhoRouteImport } from './routes/app/desempenho'
 import { Route as AppConfiguracoesRouteImport } from './routes/app/configuracoes'
@@ -74,6 +75,11 @@ const AppMateriasRoute = AppMateriasRouteImport.update({
   path: '/materias',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGradeRoute = AppGradeRouteImport.update({
+  id: '/grade',
+  path: '/grade',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEstudoRoute = AppEstudoRouteImport.update({
   id: '/estudo',
   path: '/estudo',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/estudo': typeof AppEstudoRoute
+  '/app/grade': typeof AppGradeRoute
   '/app/materias': typeof AppMateriasRoute
   '/app/plano': typeof AppPlanoRoute
   '/app/revisoes': typeof AppRevisoesRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/estudo': typeof AppEstudoRoute
+  '/app/grade': typeof AppGradeRoute
   '/app/materias': typeof AppMateriasRoute
   '/app/plano': typeof AppPlanoRoute
   '/app/revisoes': typeof AppRevisoesRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/estudo': typeof AppEstudoRoute
+  '/app/grade': typeof AppGradeRoute
   '/app/materias': typeof AppMateriasRoute
   '/app/plano': typeof AppPlanoRoute
   '/app/revisoes': typeof AppRevisoesRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes'
     | '/app/desempenho'
     | '/app/estudo'
+    | '/app/grade'
     | '/app/materias'
     | '/app/plano'
     | '/app/revisoes'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes'
     | '/app/desempenho'
     | '/app/estudo'
+    | '/app/grade'
     | '/app/materias'
     | '/app/plano'
     | '/app/revisoes'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes'
     | '/app/desempenho'
     | '/app/estudo'
+    | '/app/grade'
     | '/app/materias'
     | '/app/plano'
     | '/app/revisoes'
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMateriasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/grade': {
+      id: '/app/grade'
+      path: '/grade'
+      fullPath: '/app/grade'
+      preLoaderRoute: typeof AppGradeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/estudo': {
       id: '/app/estudo'
       path: '/estudo'
@@ -309,6 +328,7 @@ interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
   AppEstudoRoute: typeof AppEstudoRoute
+  AppGradeRoute: typeof AppGradeRoute
   AppMateriasRoute: typeof AppMateriasRoute
   AppPlanoRoute: typeof AppPlanoRoute
   AppRevisoesRoute: typeof AppRevisoesRoute
@@ -321,6 +341,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
   AppEstudoRoute: AppEstudoRoute,
+  AppGradeRoute: AppGradeRoute,
   AppMateriasRoute: AppMateriasRoute,
   AppPlanoRoute: AppPlanoRoute,
   AppRevisoesRoute: AppRevisoesRoute,
@@ -340,13 +361,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
