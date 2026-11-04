@@ -33,6 +33,20 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   }
 }
 
+async function extractFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
+  try {
+    const errObj = error as { message?: string; context?: Response };
+    if (errObj?.context && typeof errObj.context.json === "function") {
+      const body = await errObj.context.json();
+      if (body?.error) return String(body.error);
+    }
+    if (errObj?.message) return errObj.message;
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
 /**
  * Valida e sanitiza a lista de cartas [{ frente, verso }] retornada pela Edge Function.
  */
@@ -73,10 +87,11 @@ export async function generateFlashcardsWithAI(
   );
 
   if (error) {
-    throw new Error(
-      error.message ||
-        "Não foi possível conectar à função de IA. Verifique se a Edge Function 'flashcards-ai' e o secret GEMINI_API_KEY estão ativos no Supabase.",
+    const detailedMsg = await extractFunctionErrorMessage(
+      error,
+      "Não foi possível conectar à função de IA no Supabase.",
     );
+    throw new Error(detailedMsg);
   }
 
   if (data?.error) {
@@ -103,10 +118,11 @@ export async function explainFlashcardWithAI(params: ExplainFlashcardParams): Pr
   );
 
   if (error) {
-    throw new Error(
-      error.message ||
-        "Não foi possível obter a explicação da IA. Tente novamente em instantes.",
+    const detailedMsg = await extractFunctionErrorMessage(
+      error,
+      "Não foi possível obter a explicação da IA. Tente novamente em instantes.",
     );
+    throw new Error(detailedMsg);
   }
 
   if (data?.error) {
@@ -116,4 +132,3 @@ export async function explainFlashcardWithAI(params: ExplainFlashcardParams): Pr
   const explanation = typeof data?.explanation === "string" ? data.explanation.trim() : "";
   return explanation;
 }
-
