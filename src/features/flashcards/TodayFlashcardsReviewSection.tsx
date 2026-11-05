@@ -27,7 +27,7 @@ export function TodayFlashcardsReviewSection() {
               </span>
               <Badge className="bg-primary/20 text-primary border-none text-[10px]">
                 {dueTodayOrLateCards.length}{" "}
-                {dueTodayOrLateCards.length === 1 ? "carta" : "cartas"}
+                {dueTodayOrLateCards.length === 1 ? "flashcard" : "flashcards"}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -41,7 +41,7 @@ export function TodayFlashcardsReviewSection() {
             className="rounded-full shadow-glow font-bold shrink-0"
           >
             <Play size={14} className="mr-1.5 fill-current" />
-            Estudar Cartas de Hoje
+            Estudar Flashcards de Hoje
           </Button>
         </CardContent>
       </Card>
@@ -54,7 +54,7 @@ export function TodayFlashcardsReviewSection() {
         onRateCard={async (cardId, perception) => {
           const res = await reviewCard(cardId, perception);
           toast.success(
-            `Carta revisada (${perception})! Próxima revisão em ${res.nextIntervalDays} dia(s).`,
+            `Flashcard revisado (${perception})! Próxima revisão em ${res.nextIntervalDays} dia(s).`,
           );
           return res;
         }}

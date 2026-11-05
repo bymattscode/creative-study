@@ -127,7 +127,7 @@ export function FlashcardStudyModal({
         {sessionCards.length === 0 ? (
           <div className="rounded-2xl border border-border bg-surface-elevated p-8 text-center space-y-4">
             <p className="text-lg font-display font-bold text-foreground">
-              Nenhuma carta selecionada para esta sessão.
+              Nenhum flashcard selecionado para esta sessão.
             </p>
             <Button onClick={onClose} className="shadow-glow font-bold">
               Voltar aos Flashcards
@@ -143,8 +143,8 @@ export function FlashcardStudyModal({
                 Sessão de Flashcards Concluída!
               </h2>
               <p className="text-sm text-muted-foreground">
-                Você revisou {completedCount} {completedCount === 1 ? "carta" : "cartas"} e sua
-                agenda de repetição espaçada foi atualizada automaticamente.
+                Você revisou {completedCount} {completedCount === 1 ? "flashcard" : "flashcards"} e
+                sua agenda de repetição espaçada foi atualizada automaticamente.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 pt-2">
@@ -189,7 +189,7 @@ export function FlashcardStudyModal({
                   </span>
                   <span className="flex items-center gap-1.5 text-muted-foreground group-hover:text-primary transition-colors">
                     <RotateCw size={13} />
-                    {isFlipped ? "Clique para ver a pergunta" : "Clique para virar a carta"}
+                    {isFlipped ? "Clique para ver a pergunta" : "Clique para virar o flashcard"}
                   </span>
                 </div>
 
@@ -207,7 +207,7 @@ export function FlashcardStudyModal({
 
                 <div className="text-center text-[11px] text-muted-foreground">
                   {!isFlipped
-                    ? "Tente responder mentalmente antes de virar a carta"
+                    ? "Tente responder mentalmente antes de virar o flashcard"
                     : "Avalie abaixo o quão fácil foi lembrar da resposta"}
                 </div>
               </div>

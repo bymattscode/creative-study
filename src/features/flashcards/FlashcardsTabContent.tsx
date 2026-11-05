@@ -62,10 +62,10 @@ export function FlashcardsTabContent() {
   const handleSaveCard = async (input: FlashcardInput, editingId?: string) => {
     if (editingId) {
       await updateCard(editingId, input);
-      toast.success("Carta atualizada!");
+      toast.success("Flashcard atualizado!");
     } else {
       await createCard(input);
-      toast.success("Nova carta criada!");
+      toast.success("Novo flashcard criado!");
     }
   };
 
@@ -75,7 +75,7 @@ export function FlashcardsTabContent() {
 
   const handleConfirmDelete = async (card: Flashcard) => {
     await deleteCard(card.id);
-    toast.info("Carta excluída do seu deck.");
+    toast.info("Flashcard excluído do seu deck.");
   };
 
   const handleStartStudySession = (customCards?: Flashcard[]) => {
@@ -87,7 +87,7 @@ export function FlashcardsTabContent() {
           : cards;
 
     if (targetDeck.length === 0) {
-      toast.info("Crie ou gere algumas cartas primeiro para iniciar o estudo.");
+      toast.info("Crie ou gere alguns flashcards primeiro para iniciar o estudo.");
       return;
     }
 
@@ -105,7 +105,7 @@ export function FlashcardsTabContent() {
               <Layers size={20} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Total de Cartas</p>
+              <p className="text-xs text-muted-foreground">Total de Flashcards</p>
               <p className="text-xl font-display font-bold text-foreground">{cards.length}</p>
             </div>
           </CardContent>
@@ -117,7 +117,7 @@ export function FlashcardsTabContent() {
               <CalendarCheck size={20} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Cartas para Hoje</p>
+              <p className="text-xs text-muted-foreground">Flashcards para Hoje</p>
               <p className="text-xl font-display font-bold text-foreground">
                 {dueTodayOrLateCards.length}
               </p>
@@ -131,9 +131,9 @@ export function FlashcardsTabContent() {
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Cartas Revisadas Hoje</p>
+              <p className="text-xs text-muted-foreground">Flashcards Revisados Hoje</p>
               <p className="text-xl font-display font-bold text-foreground">
-                {reviewedTodayCount} {reviewedTodayCount === 1 ? "carta" : "cartas"}
+                {reviewedTodayCount} {reviewedTodayCount === 1 ? "flashcard" : "flashcards"}
               </p>
             </div>
           </CardContent>
@@ -147,16 +147,17 @@ export function FlashcardsTabContent() {
             {dueTodayOrLateCards.length > 0
               ? `Você tem ${dueTodayOrLateCards.length} ${
                   dueTodayOrLateCards.length === 1
-                    ? "carta agendada para revisar hoje"
-                    : "cartas agendadas para revisar hoje"
+                    ? "flashcard agendado para revisar hoje"
+                    : "flashcards agendados para revisar hoje"
                 }`
               : cards.length > 0
-                ? "Todas as cartas do dia foram revisadas! Você ainda pode praticar livremente."
+                ? "Todos os flashcards do dia foram revisados! Você ainda pode praticar livremente."
                 : "Monte seu deck manualmente ou gere flashcards com IA a partir das suas matérias."}
           </p>
           <p className="text-xs text-muted-foreground">
-            {reviewedTodayCount} {reviewedTodayCount === 1 ? "carta revisada" : "cartas revisadas"}{" "}
-            hoje • Integrado ao modelo de repetição espaçada
+            {reviewedTodayCount}{" "}
+            {reviewedTodayCount === 1 ? "flashcard revisado" : "flashcards revisados"} hoje •
+            Integrado ao modelo de repetição espaçada
           </p>
         </div>
 
@@ -168,7 +169,7 @@ export function FlashcardsTabContent() {
               className="rounded-full shadow-glow font-bold"
             >
               <Play className="mr-1.5 h-4 w-4 fill-current" />
-              Estudar Cartas (
+              Estudar Flashcards (
               {dueTodayOrLateCards.length > 0 ? dueTodayOrLateCards.length : cards.length})
             </Button>
           )}
@@ -194,7 +195,7 @@ export function FlashcardsTabContent() {
             className="rounded-full border-border hover:border-primary/50 font-semibold"
           >
             <Plus className="mr-1.5 h-4 w-4 text-primary" />
-            Nova Carta
+            Novo Flashcard
           </Button>
         </div>
       </div>
@@ -213,7 +214,7 @@ export function FlashcardsTabContent() {
                 Nenhum flashcard criado ainda
               </p>
               <p className="text-sm text-muted-foreground">
-                Crie suas cartas manualmente ou use a IA para gerar perguntas e respostas
+                Crie seus flashcards manualmente ou use a IA para gerar perguntas e respostas
                 automaticamente a partir dos tópicos das suas matérias.
               </p>
             </div>
@@ -233,7 +234,7 @@ export function FlashcardsTabContent() {
                 className="rounded-full"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Nova Carta Manual
+                Novo Flashcard Manual
               </Button>
             </div>
           </CardContent>
@@ -256,7 +257,7 @@ export function FlashcardsTabContent() {
                       {group.materiaNome}
                     </h3>
                     <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                      {group.cards.length} {group.cards.length === 1 ? "carta" : "cartas"}
+                      {group.cards.length} {group.cards.length === 1 ? "flashcard" : "flashcards"}
                     </Badge>
                     {dueInGroup.length > 0 && (
                       <Badge className="bg-primary/20 text-primary border-none text-[10px] uppercase">
@@ -315,7 +316,7 @@ export function FlashcardsTabContent() {
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-primary"
                                 onClick={() => handleOpenEdit(card)}
-                                title="Editar carta"
+                                title="Editar flashcard"
                               >
                                 <Pencil size={13} />
                               </Button>
@@ -325,7 +326,7 @@ export function FlashcardsTabContent() {
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => setCardToDelete(card)}
-                                title="Excluir carta"
+                                title="Excluir flashcard"
                               >
                                 <Trash2 size={13} />
                               </Button>
@@ -358,7 +359,7 @@ export function FlashcardsTabContent() {
                               onClick={() => handleStartStudySession([card])}
                               className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10"
                             >
-                              Praticar carta
+                              Praticar flashcard
                             </Button>
                           </div>
                         </CardContent>
@@ -409,7 +410,9 @@ export function FlashcardsTabContent() {
         reviewModel={reviewModel}
         onRateCard={async (cardId, perception) => {
           const res = await reviewCard(cardId, perception);
-          toast.success(`Carta avaliada (${perception})! Próxima revisão em ${res.nextIntervalDays}d.`);
+          toast.success(
+            `Flashcard avaliado (${perception})! Próxima revisão em ${res.nextIntervalDays}d.`,
+          );
           return res;
         }}
         renderBackExtra={(card) => <FlashcardBackExplanation card={card} />}

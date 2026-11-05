@@ -107,11 +107,11 @@ export function FlashcardFormDialog({
       return;
     }
     if (!frente.trim()) {
-      toast.error("Preencha a frente (pergunta) da carta.");
+      toast.error("Preencha a frente (pergunta) do flashcard.");
       return;
     }
     if (!verso.trim()) {
-      toast.error("Preencha o verso (resposta) da carta.");
+      toast.error("Preencha o verso (resposta) do flashcard.");
       return;
     }
 
@@ -149,10 +149,10 @@ export function FlashcardFormDialog({
       <DialogContent className="bg-surface-elevated border-border sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-xl font-bold text-foreground">
-            {editingCard ? "Editar Flashcard" : "Nova Carta de Estudo"}
+            {editingCard ? "Editar Flashcard" : "Novo Flashcard"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Vincule a carta a uma matéria e tópico para revisar com repetição espaçada.
+            Vincule o flashcard a uma matéria e tópico para revisar com repetição espaçada.
           </DialogDescription>
         </DialogHeader>
 
@@ -259,7 +259,7 @@ export function FlashcardFormDialog({
             disabled={isSaving || subjects.length === 0}
             className="shadow-glow font-bold"
           >
-            {editingCard ? "Salvar Alterações" : "Criar Carta"}
+            {editingCard ? "Salvar Alterações" : "Criar Flashcard"}
           </Button>
         </DialogFooter>
       </DialogContent>

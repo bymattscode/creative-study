@@ -39,7 +39,7 @@ export function DeleteFlashcardDialog({
             Excluir flashcard?
           </DialogTitle>
           <DialogDescription className="text-muted-foreground pt-1">
-            Tem certeza que deseja excluir esta carta de{" "}
+            Tem certeza que deseja excluir este flashcard de{" "}
             <strong className="text-foreground">{card.materia_nome}</strong>? Essa ação não pode
             ser desfeita.
           </DialogDescription>
@@ -59,7 +59,7 @@ export function DeleteFlashcardDialog({
           </Button>
           <Button variant="destructive" onClick={handleConfirm}>
             <Trash2 className="mr-2 h-4 w-4" />
-            Excluir Carta
+            Excluir Flashcard
           </Button>
         </DialogFooter>
       </DialogContent>

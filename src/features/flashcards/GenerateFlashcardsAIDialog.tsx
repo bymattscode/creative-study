@@ -203,8 +203,8 @@ export function GenerateFlashcardsAIDialog({
             Gerar Flashcards com IA
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Escolha a matéria, selecione um tópico ou cole seu resumo e revise as cartas antes de
-            salvar.
+            Escolha a matéria, selecione um tópico ou cole seu resumo e revise os flashcards antes
+            de salvar.
           </DialogDescription>
         </DialogHeader>
 
@@ -238,7 +238,7 @@ export function GenerateFlashcardsAIDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Quantidade de Cartas</Label>
+              <Label>Quantidade de Flashcards</Label>
               <div className="grid grid-cols-3 gap-2">
                 {([3, 5, 10] as const).map((qty) => (
                   <button
@@ -252,7 +252,7 @@ export function GenerateFlashcardsAIDialog({
                         : "bg-background border-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {qty} cartas
+                    {qty} flashcards
                   </button>
                 ))}
               </div>
@@ -290,7 +290,7 @@ export function GenerateFlashcardsAIDialog({
             <Label htmlFor="ai-fc-manual">
               {availableTopics.length > 0 && selectedTopicId !== MANUAL_CONTENT_VALUE
                 ? "Resumo, ementa ou anotações adicionais (opcional)"
-                : "Conteúdo, ementa ou resumo para gerar as cartas *"}
+                : "Conteúdo, ementa ou resumo para gerar os flashcards *"}
             </Label>
             <textarea
               id="ai-fc-manual"
@@ -311,7 +311,9 @@ export function GenerateFlashcardsAIDialog({
               className="shadow-glow font-bold"
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              {aiState === "preview" ? "Regerar com IA" : `Gerar ${quantidade} Cartas com IA`}
+              {aiState === "preview"
+                ? "Regerar com IA"
+                : `Gerar ${quantidade} Flashcards com IA`}
             </Button>
           </div>
 
@@ -364,11 +366,11 @@ export function GenerateFlashcardsAIDialog({
             </div>
           )}
 
-          {/* ESTADO 3: VAZIO ("Nenhuma carta gerada. Ajuste o conteúdo e tente de novo.") */}
+          {/* ESTADO 3: VAZIO */}
           {aiState === "empty" && (
             <div className="rounded-xl border border-border bg-background/60 p-6 text-center space-y-3">
               <p className="text-sm font-semibold text-foreground">
-                Nenhuma carta gerada. Ajuste o conteúdo e tente de novo.
+                Nenhum flashcard gerado. Ajuste o conteúdo e tente de novo.
               </p>
               <Button type="button" variant="outline" size="sm" onClick={handleGenerate}>
                 <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -384,10 +386,10 @@ export function GenerateFlashcardsAIDialog({
                 <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                   <CheckCircle2 size={14} />
                   Pré-visualização Editável ({draftCards.length}{" "}
-                  {draftCards.length === 1 ? "carta" : "cartas"})
+                  {draftCards.length === 1 ? "flashcard" : "flashcards"})
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Edite ou descarte qualquer carta antes de salvar
+                  Edite ou descarte qualquer flashcard antes de salvar
                 </span>
               </div>
 
@@ -399,7 +401,7 @@ export function GenerateFlashcardsAIDialog({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-muted-foreground">
-                        Carta #{index + 1}
+                        Flashcard #{index + 1}
                       </span>
                       <Button
                         type="button"
@@ -450,7 +452,7 @@ export function GenerateFlashcardsAIDialog({
               disabled={isSaving}
               className="shadow-glow font-bold"
             >
-              Salvar {draftCards.length} {draftCards.length === 1 ? "Carta" : "Cartas"}
+              Salvar {draftCards.length} {draftCards.length === 1 ? "Flashcard" : "Flashcards"}
             </Button>
           )}
         </DialogFooter>
