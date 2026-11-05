@@ -65,7 +65,11 @@ export function FlashcardStudyModal({
     if (!currentCard || isSubmitting) return;
     try {
       setIsSubmitting(true);
-      await onRateCard(currentCard.id, perception);
+      const { updated } = await onRateCard(currentCard.id, perception);
+      // Atualiza o flashcard na sessão atual para refletir o novo estágio caso o aluno revise novamente
+      setSessionCards((prev) =>
+        prev.map((c) => (c.id === currentCard.id ? updated : c)),
+      );
       setCompletedCount((prev) => prev + 1);
       setIsFlipped(false);
       setCurrentIndex((prev) => prev + 1);
@@ -97,6 +101,9 @@ export function FlashcardStudyModal({
                     {currentCard.conteudo_nome}
                   </Badge>
                 )}
+                <Badge className="bg-primary/15 text-primary border-primary/30 text-[11px]">
+                  Estágio: Dia {currentCard.interval_days || 1}
+                </Badge>
               </>
             )}
           </div>
@@ -223,18 +230,18 @@ export function FlashcardStudyModal({
                     <p className="text-xs text-center text-muted-foreground font-medium">
                       Como foi lembrar desta resposta?
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <Button
                         type="button"
                         variant="outline"
                         disabled={isSubmitting}
                         onClick={() => handleSelectPerception("Difícil")}
-                        className="h-auto py-3 flex flex-col gap-0.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30"
+                        className="h-auto py-3 px-4 flex flex-col gap-0.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30"
                       >
-                        <span className="font-bold text-sm">Difícil</span>
-                        <span className="text-[11px] opacity-80">
-                          Rever em {nextIntervalsPreview.dificil}d
+                        <span className="font-bold text-sm">
+                          Difícil • rever em {nextIntervalsPreview.dificil}d
                         </span>
+                        <span className="text-[11px] opacity-80">Volta para o Dia 1</span>
                       </Button>
 
                       <Button
@@ -242,12 +249,12 @@ export function FlashcardStudyModal({
                         variant="outline"
                         disabled={isSubmitting}
                         onClick={() => handleSelectPerception("Médio")}
-                        className="h-auto py-3 flex flex-col gap-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                        className="h-auto py-3 px-4 flex flex-col gap-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
                       >
-                        <span className="font-bold text-sm">Médio</span>
-                        <span className="text-[11px] opacity-80">
-                          Rever em {nextIntervalsPreview.medio}d
+                        <span className="font-bold text-sm">
+                          Médio • rever em {nextIntervalsPreview.medio}d
                         </span>
+                        <span className="text-[11px] opacity-80">Avança 1 intervalo</span>
                       </Button>
 
                       <Button
@@ -255,12 +262,12 @@ export function FlashcardStudyModal({
                         variant="outline"
                         disabled={isSubmitting}
                         onClick={() => handleSelectPerception("Fácil")}
-                        className="h-auto py-3 flex flex-col gap-0.5 bg-primary/15 hover:bg-primary/25 text-primary border-primary/40"
+                        className="h-auto py-3 px-4 flex flex-col gap-0.5 bg-primary/15 hover:bg-primary/25 text-primary border-primary/40"
                       >
-                        <span className="font-bold text-sm">Fácil</span>
-                        <span className="text-[11px] opacity-80">
-                          Rever em {nextIntervalsPreview.facil}d
+                        <span className="font-bold text-sm">
+                          Fácil • rever em {nextIntervalsPreview.facil}d
                         </span>
+                        <span className="text-[11px] opacity-80">Avança 2 intervalos</span>
                       </Button>
                     </div>
                   </div>

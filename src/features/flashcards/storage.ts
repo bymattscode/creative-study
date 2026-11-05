@@ -176,9 +176,11 @@ export async function reviewFlashcardRecord(
   currentCards: Flashcard[],
   userId?: string,
 ): Promise<{ updated: Flashcard; nextIntervalDays: number; cards: Flashcard[] }> {
-  const target = currentCards.find((c) => c.id === cardId);
+  const latestLocal = readLocalFlashcards(userId);
+  const sourceCards = latestLocal.length > 0 ? latestLocal : currentCards;
+  const target = sourceCards.find((c) => c.id === cardId);
   if (!target) {
-    throw new Error("Carta não encontrada.");
+    throw new Error("Flashcard não encontrado.");
   }
 
   const schedule = computeNextFlashcardReview(target, perception, model);
@@ -191,7 +193,7 @@ export async function reviewFlashcardRecord(
     ultima_revisao: new Date().toISOString(),
   };
 
-  const nextCards = currentCards.map((c) => (c.id === cardId ? updated : c));
+  const nextCards = sourceCards.map((c) => (c.id === cardId ? updated : c));
   await saveFlashcards(nextCards, userId);
 
   return {
