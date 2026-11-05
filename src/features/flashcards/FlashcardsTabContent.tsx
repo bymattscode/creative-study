@@ -345,12 +345,14 @@ export function FlashcardsTabContent() {
                           <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock size={11} className="text-primary" />
-                              Próxima:{" "}
-                              {new Date(card.proxima_revisao).toLocaleDateString("pt-BR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                              })}{" "}
-                              ({card.interval_days}d)
+                              {isDue
+                                ? "Revisar hoje"
+                                : `Próxima revisão: ${new Date(
+                                    card.proxima_revisao,
+                                  ).toLocaleDateString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                  })}`}
                             </span>
                             <Button
                               type="button"
