@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, CheckCircle2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, RefreshCw, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateFlashcardsWithAI } from "./ai-client";
 import {
@@ -58,7 +58,20 @@ export function GenerateFlashcardsAIDialog({
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [draftCards, setDraftCards] = useState<GeneratedFlashcardDraft[]>([]);
+  const [pendingDiscardIds, setPendingDiscardIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const discardTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const clearAllDiscardTimers = () => {
+    Object.values(discardTimersRef.current).forEach((timerId) => clearTimeout(timerId));
+    discardTimersRef.current = {};
+  };
+
+  useEffect(() => {
+    return () => {
+      clearAllDiscardTimers();
+    };
+  }, []);
 
   const availableTopics = useMemo(
     () => topics.filter((t) => t.subject_id === materiaId),
@@ -67,7 +80,10 @@ export function GenerateFlashcardsAIDialog({
 
   // Inicializa o formulário ao abrir o modal
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      clearAllDiscardTimers();
+      return;
+    }
     const defaultSubId = subjects[0]?.id || "";
     setMateriaId(defaultSubId);
     const subTopics = topics.filter((t) => t.subject_id === defaultSubId);
@@ -82,6 +98,8 @@ export function GenerateFlashcardsAIDialog({
     setAiState("idle");
     setErrorMessage("");
     setDraftCards([]);
+    setPendingDiscardIds([]);
+    clearAllDiscardTimers();
   }, [open]);
 
   // Caso as matérias/tópicos terminem de carregar com o modal aberto, sincroniza a seleção inicial sem apagar o texto digitado
@@ -141,6 +159,8 @@ export function GenerateFlashcardsAIDialog({
 
     setAiState("loading");
     setErrorMessage("");
+    clearAllDiscardTimers();
+    setPendingDiscardIds([]);
 
     try {
       const generated = await generateFlashcardsWithAI({
@@ -180,19 +200,41 @@ export function GenerateFlashcardsAIDialog({
   };
 
   const handleDiscardDraft = (tempId: string) => {
-    setDraftCards((prev) => {
-      const next = prev.filter((c) => c.tempId !== tempId);
-      if (next.length === 0) {
-        setAiState("empty");
-      }
-      return next;
-    });
+    if (discardTimersRef.current[tempId]) {
+      clearTimeout(discardTimersRef.current[tempId]);
+    }
+    setPendingDiscardIds((prev) => (prev.includes(tempId) ? prev : [...prev, tempId]));
+
+    discardTimersRef.current[tempId] = setTimeout(() => {
+      delete discardTimersRef.current[tempId];
+      setPendingDiscardIds((prev) => prev.filter((id) => id !== tempId));
+      setDraftCards((prev) => {
+        const next = prev.filter((c) => c.tempId !== tempId);
+        if (next.length === 0) {
+          setAiState("empty");
+        }
+        return next;
+      });
+    }, 5000);
   };
 
+  const handleUndoDiscardDraft = (tempId: string) => {
+    if (discardTimersRef.current[tempId]) {
+      clearTimeout(discardTimersRef.current[tempId]);
+      delete discardTimersRef.current[tempId];
+    }
+    setPendingDiscardIds((prev) => prev.filter((id) => id !== tempId));
+  };
+
+  const activeDraftCards = useMemo(
+    () => draftCards.filter((c) => !pendingDiscardIds.includes(c.tempId)),
+    [draftCards, pendingDiscardIds],
+  );
+
   const handleSaveApprovedCards = async () => {
-    const validDrafts = draftCards.filter((d) => d.frente.trim() && d.verso.trim());
+    const validDrafts = activeDraftCards.filter((d) => d.frente.trim() && d.verso.trim());
     if (validDrafts.length === 0) {
-      toast.error("Nenhuma carta válida para salvar.");
+      toast.error("Nenhum flashcard válido para salvar.");
       return;
     }
 
@@ -431,8 +473,8 @@ export function GenerateFlashcardsAIDialog({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                   <CheckCircle2 size={14} />
-                  Pré-visualização Editável ({draftCards.length}{" "}
-                  {draftCards.length === 1 ? "flashcard" : "flashcards"})
+                  Pré-visualização Editável ({activeDraftCards.length}{" "}
+                  {activeDraftCards.length === 1 ? "flashcard" : "flashcards"})
                 </span>
                 <span className="text-xs text-muted-foreground">
                   Edite ou descarte qualquer flashcard antes de salvar
@@ -440,48 +482,90 @@ export function GenerateFlashcardsAIDialog({
               </div>
 
               <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
-                {draftCards.map((draft, index) => (
-                  <div
-                    key={draft.tempId}
-                    className="rounded-xl border border-border bg-background/70 p-3.5 space-y-2.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-muted-foreground">
-                        Flashcard #{index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDiscardDraft(draft.tempId)}
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                {draftCards.map((draft, index) => {
+                  const isPendingDiscard = pendingDiscardIds.includes(draft.tempId);
+                  return (
+                    <div
+                      key={draft.tempId}
+                      className={`rounded-xl border p-3.5 space-y-2.5 transition-all duration-200 ${
+                        isPendingDiscard
+                          ? "border-dashed border-border/60 bg-background/30"
+                          : "border-border bg-background/70"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs font-bold ${
+                            isPendingDiscard
+                              ? "text-muted-foreground/40 line-through"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          Flashcard #{index + 1}
+                        </span>
+                        {isPendingDiscard ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUndoDiscardDraft(draft.tempId)}
+                            className="h-7 px-2.5 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/15"
+                          >
+                            <RotateCcw size={12} className="mr-1" />
+                            Desfazer
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDiscardDraft(draft.tempId)}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 size={13} className="mr-1" />
+                            Descartar
+                          </Button>
+                        )}
+                      </div>
+
+                      <div
+                        className={`space-y-2.5 transition-opacity duration-200 ${
+                          isPendingDiscard ? "opacity-35 pointer-events-none select-none" : ""
+                        }`}
                       >
-                        <Trash2 size={13} className="mr-1" />
-                        Descartar
-                      </Button>
-                    </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">
+                            Frente (Pergunta)
+                          </Label>
+                          <textarea
+                            rows={2}
+                            disabled={isPendingDiscard}
+                            value={draft.frente}
+                            onChange={(e) =>
+                              handleDraftChange(draft.tempId, "frente", e.target.value)
+                            }
+                            className="w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                          />
+                        </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Frente (Pergunta)</Label>
-                      <textarea
-                        rows={2}
-                        value={draft.frente}
-                        onChange={(e) => handleDraftChange(draft.tempId, "frente", e.target.value)}
-                        className="w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
-                      />
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">
+                            Verso (Resposta)
+                          </Label>
+                          <textarea
+                            rows={2}
+                            disabled={isPendingDiscard}
+                            value={draft.verso}
+                            onChange={(e) =>
+                              handleDraftChange(draft.tempId, "verso", e.target.value)
+                            }
+                            className="w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                          />
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Verso (Resposta)</Label>
-                      <textarea
-                        rows={2}
-                        value={draft.verso}
-                        onChange={(e) => handleDraftChange(draft.tempId, "verso", e.target.value)}
-                        className="w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -495,10 +579,11 @@ export function GenerateFlashcardsAIDialog({
             <Button
               type="button"
               onClick={handleSaveApprovedCards}
-              disabled={isSaving}
+              disabled={isSaving || activeDraftCards.length === 0}
               className="shadow-glow font-bold"
             >
-              Salvar {draftCards.length} {draftCards.length === 1 ? "Flashcard" : "Flashcards"}
+              Salvar {activeDraftCards.length}{" "}
+              {activeDraftCards.length === 1 ? "Flashcard" : "Flashcards"}
             </Button>
           )}
         </DialogFooter>

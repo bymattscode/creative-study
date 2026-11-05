@@ -287,7 +287,16 @@ export function FlashcardsTabContent() {
                     return (
                       <Card
                         key={card.id}
-                        className="bg-surface border-border hover:border-primary/40 transition-colors overflow-hidden"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleStartStudySession([card])}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleStartStudySession([card]);
+                          }
+                        }}
+                        className="bg-surface border-border hover:border-primary/50 transition-colors overflow-hidden cursor-pointer"
                         style={{
                           borderLeftWidth: "4px",
                           borderLeftColor: card.materia_cor,
@@ -309,13 +318,19 @@ export function FlashcardsTabContent() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div
+                              className="flex items-center gap-1 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-primary"
-                                onClick={() => handleOpenEdit(card)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEdit(card);
+                                }}
                                 title="Editar flashcard"
                               >
                                 <Pencil size={13} />
@@ -325,7 +340,10 @@ export function FlashcardsTabContent() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                onClick={() => setCardToDelete(card)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCardToDelete(card);
+                                }}
                                 title="Excluir flashcard"
                               >
                                 <Trash2 size={13} />
@@ -354,15 +372,6 @@ export function FlashcardsTabContent() {
                                     month: "2-digit",
                                   })}`}
                             </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStartStudySession([card])}
-                              className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10"
-                            >
-                              Praticar flashcard
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
