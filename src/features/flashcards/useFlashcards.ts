@@ -48,9 +48,11 @@ export function useFlashcards() {
     enabled: Boolean(userId),
   });
 
+  const subjectIdsKey = useMemo(() => subjects.map((s) => s.id).join(","), [subjects]);
+
   // Reutiliza os tópicos/conteúdos já cadastrados na Central de Matérias
   const { data: topics = [] } = useQuery<FlashcardTopicOption[]>({
-    queryKey: ["topics", userId],
+    queryKey: ["topics", userId, subjectIdsKey],
     queryFn: async () => {
       if (!subjects.length) return [];
       const { data } = await supabase

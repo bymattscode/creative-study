@@ -48,8 +48,9 @@ export function GenerateFlashcardsAIDialog({
   onSaveGeneratedCards,
 }: GenerateFlashcardsAIDialogProps) {
   const [materiaId, setMateriaId] = useState("");
-  const [selectedTopicId, setSelectedTopicId] = useState<string>("");
+  const [selectedTopicId, setSelectedTopicId] = useState<string>(MANUAL_CONTENT_VALUE);
   const [manualContent, setManualContent] = useState("");
+  const [contentValidationError, setContentValidationError] = useState(false);
   const [quantidade, setQuantidade] = useState<3 | 5 | 10>(5);
 
   const [aiState, setAiState] = useState<"idle" | "loading" | "preview" | "empty" | "error">(
@@ -64,6 +65,7 @@ export function GenerateFlashcardsAIDialog({
     [topics, materiaId],
   );
 
+  // Inicializa o formulário ao abrir o modal
   useEffect(() => {
     if (!open) return;
     const defaultSubId = subjects[0]?.id || "";
@@ -75,11 +77,33 @@ export function GenerateFlashcardsAIDialog({
       setSelectedTopicId(MANUAL_CONTENT_VALUE);
     }
     setManualContent("");
+    setContentValidationError(false);
     setQuantidade(5);
     setAiState("idle");
     setErrorMessage("");
     setDraftCards([]);
-  }, [open, subjects, topics]);
+  }, [open]);
+
+  // Caso as matérias/tópicos terminem de carregar com o modal aberto, sincroniza a seleção inicial sem apagar o texto digitado
+  useEffect(() => {
+    if (!open) return;
+    if (!materiaId && subjects.length > 0) {
+      const firstSubId = subjects[0].id;
+      setMateriaId(firstSubId);
+      const subTopics = topics.filter((t) => t.subject_id === firstSubId);
+      if (subTopics.length > 0) {
+        setSelectedTopicId(subTopics[0].id);
+      }
+      return;
+    }
+    if (
+      materiaId &&
+      selectedTopicId === MANUAL_CONTENT_VALUE &&
+      availableTopics.length > 0
+    ) {
+      setSelectedTopicId(availableTopics[0].id);
+    }
+  }, [open, subjects, topics, materiaId, availableTopics]);
 
   const handleSubjectChange = (newSubId: string) => {
     setMateriaId(newSubId);
@@ -91,26 +115,29 @@ export function GenerateFlashcardsAIDialog({
     }
   };
 
+  const isContentEmpty = !manualContent.trim();
+
   const handleGenerate = async () => {
     if (!materiaId) {
       toast.error("Selecione uma matéria primeiro.");
       return;
     }
 
+    if (!manualContent.trim()) {
+      setContentValidationError(true);
+      return;
+    }
+
+    setContentValidationError(false);
     const selectedSubject = subjects.find((s) => s.id === materiaId);
     const selectedTopic = availableTopics.find((t) => t.id === selectedTopicId);
 
     const combinedContent = [
       selectedTopic ? `Tópico do edital/ementa: ${selectedTopic.name}` : "",
-      manualContent.trim() ? `Conteúdo/Resumo complementar:\n${manualContent.trim()}` : "",
+      `Conteúdo/Resumo complementar:\n${manualContent.trim()}`,
     ]
       .filter(Boolean)
       .join("\n\n");
-
-    if (!combinedContent.trim()) {
-      toast.error("Selecione um tópico cadastrado ou cole o conteúdo/resumo para a IA.");
-      return;
-    }
 
     setAiState("loading");
     setErrorMessage("");
@@ -259,38 +286,36 @@ export function GenerateFlashcardsAIDialog({
             </div>
           </div>
 
-          {/* Tópico existente da Central de Matérias */}
-          {availableTopics.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="ai-fc-topic">Conteúdo / Tópico da Matéria</Label>
-              <Select
-                value={selectedTopicId}
-                onValueChange={setSelectedTopicId}
-                disabled={aiState === "loading"}
-              >
-                <SelectTrigger id="ai-fc-topic" className="bg-background border-border">
-                  <SelectValue placeholder="Selecione um tópico" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTopics.map((topic) => (
-                    <SelectItem key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={MANUAL_CONTENT_VALUE}>
-                    Usar apenas texto/resumo colado abaixo
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Texto/ementa/resumo manual */}
+          {/* Tópico existente da Central de Matérias (seleção opcional, sempre visível acima da textarea) */}
           <div className="space-y-2">
+            <Label htmlFor="ai-fc-topic">Conteúdo / Tópico da Matéria (opcional)</Label>
+            <Select
+              value={selectedTopicId || MANUAL_CONTENT_VALUE}
+              onValueChange={setSelectedTopicId}
+              disabled={aiState === "loading"}
+            >
+              <SelectTrigger id="ai-fc-topic" className="bg-background border-border">
+                <SelectValue placeholder="Selecione um tópico da matéria (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTopics.map((topic) => (
+                  <SelectItem key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={MANUAL_CONTENT_VALUE}>
+                  {availableTopics.length > 0
+                    ? "Sem tópico vinculado (apenas texto colado abaixo)"
+                    : "Nenhum tópico cadastrado nesta matéria (usar texto colado abaixo)"}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Texto/ementa/resumo manual com validação inline */}
+          <div className="space-y-1.5">
             <Label htmlFor="ai-fc-manual">
-              {availableTopics.length > 0 && selectedTopicId !== MANUAL_CONTENT_VALUE
-                ? "Resumo, ementa ou anotações adicionais (opcional)"
-                : "Conteúdo, ementa ou resumo para gerar os flashcards *"}
+              Conteúdo, ementa ou resumo para gerar os flashcards *
             </Label>
             <textarea
               id="ai-fc-manual"
@@ -298,9 +323,25 @@ export function GenerateFlashcardsAIDialog({
               disabled={aiState === "loading"}
               placeholder="Cole aqui trechos da aula, resumo, conceitos-chave ou tópicos da prova..."
               value={manualContent}
-              onChange={(e) => setManualContent(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+              onChange={(e) => {
+                setManualContent(e.target.value);
+                if (e.target.value.trim()) {
+                  setContentValidationError(false);
+                }
+              }}
+              aria-invalid={contentValidationError}
+              className={`w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 resize-y transition-colors ${
+                contentValidationError
+                  ? "border-red-500/60 focus:border-red-500/80 focus:ring-red-500/30"
+                  : "border-border focus:ring-primary"
+              }`}
             />
+            {contentValidationError && (
+              <p className="text-xs text-red-400 font-medium flex items-center gap-1.5 pt-0.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Cole um conteúdo ou resumo para a IA gerar os flashcards
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end">
@@ -308,7 +349,12 @@ export function GenerateFlashcardsAIDialog({
               type="button"
               onClick={handleGenerate}
               disabled={aiState === "loading" || subjects.length === 0}
-              className="shadow-glow font-bold"
+              aria-disabled={isContentEmpty || aiState === "loading" || subjects.length === 0}
+              className={`font-bold transition-all ${
+                isContentEmpty
+                  ? "opacity-50 cursor-not-allowed shadow-none hover:bg-primary"
+                  : "shadow-glow cursor-pointer"
+              }`}
             >
               <Sparkles className="mr-2 h-4 w-4" />
               {aiState === "preview"
